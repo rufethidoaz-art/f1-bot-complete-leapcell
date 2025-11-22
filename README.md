@@ -35,6 +35,10 @@
 - **Runtime**: `python3.12-slim-bookworm` (recommended)
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `gunicorn --bind :8080 --workers 1 --timeout 120 leapcell_f1_bot:app`
+  - **⚠️ IMPORTANT**: Make sure it's exactly `leapcell_f1_bot:app` (not `your_app.wsgi`)
+  - The format is: `module_name:variable_name`
+  - `leapcell_f1_bot` is the Python file name
+  - `app` is the Flask application variable
 - **Serving Port**: `8080`
 
 ### Environment Variables
