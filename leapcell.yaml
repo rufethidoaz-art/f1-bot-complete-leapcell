@@ -1,0 +1,50 @@
+# Leapcell deployment configuration for F1 Telegram Bot
+apiVersion: v1
+kind: Service
+metadata:
+  name: f1-bot-leapcell-test
+spec:
+  # Port configuration
+  ports:
+    - port: 8080
+      protocol: HTTP
+      targetPort: 8080
+
+  # Environment variables
+  env:
+    - name: TELEGRAM_BOT_TOKEN
+      value: YOUR_BOT_TOKEN_HERE
+    - name: PORT
+      value: "8080"
+    - name: PYTHON_VERSION
+      value: "3.11.0"
+    - name: PLAYWRIGHT_BROWSERS_PATH
+      value: "0"
+
+  # Docker configuration
+  image:
+    repository: your-registry/f1-bot-leapcell
+    tag: latest
+    build:
+      dockerfile: Dockerfile
+      context: .
+
+  # Health checks
+  healthCheck:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+  # Scaling
+  replicas: 1
