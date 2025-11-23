@@ -2184,8 +2184,8 @@ def setup_bot():
                 if leapcell_url:
                     webhook_url = f"{leapcell_url}/webhook"
                 else:
-                    # Fallback for local development
-                    webhook_url = "https://your-leapcell-service-url/webhook"
+                    # Hardcoded fallback for Leapcell deployment
+                    webhook_url = "https://f1-bot-leapcell-test-rufethidoaz6750-xpbtnrit.leapcell.dev/webhook"
 
             print("☁️ Leapcell F1 Bot is starting...")
             print(f"🔗 Setting up webhook: {webhook_url}")
