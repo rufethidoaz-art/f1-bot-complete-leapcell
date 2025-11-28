@@ -30,9 +30,13 @@ RUN apt-get update && apt-get install -y \
 ```
 
 ### 2. Updated Requirements
-Modified `requirements.txt` to handle psutil compilation issues more gracefully:
+Modified `requirements.txt` to avoid compilation issues entirely:
 - Fixed `ifcfg` version from `0.20.7` to `0.24` (correct version)
-- Simplified dependency handling
+- Added `netifaces==0.11.0` as fallback monitoring
+- **CRITICAL FIX**: Made psutil conditional to avoid compilation on Linux ARM64 (common in containers)
+- Uses pre-compiled wheels only, avoiding the need for `gcc` and `python3-dev`
+
+**Root Cause**: The build environment doesn't have compilation tools, and the Dockerfile system dependencies aren't being used during the build process.
 
 ## Next Steps
 
