@@ -32,9 +32,11 @@ RUN apt-get update && apt-get install -y \
 ### 2. Updated Requirements
 Modified `requirements.txt` to avoid compilation issues entirely:
 - Fixed `ifcfg` version from `0.20.7` to `0.24` (correct version)
-- Added `netifaces==0.11.0` as fallback monitoring
 - **CRITICAL FIX**: Made psutil conditional to avoid compilation on Linux ARM64 (common in containers)
+- **REMOVED**: `netifaces` package - also requires compilation
 - Uses pre-compiled wheels only, avoiding the need for `gcc` and `python3-dev`
+
+**Latest Build Progress**: ✅ psutil now being ignored correctly, ❌ netifaces still requires compilation (now removed)
 
 **Root Cause**: The build environment doesn't have compilation tools, and the Dockerfile system dependencies aren't being used during the build process.
 
