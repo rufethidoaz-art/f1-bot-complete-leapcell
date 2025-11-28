@@ -1,0 +1,7 @@
+# F1 Stream Links
+# Format: Name | URL
+# Example: F1 Live Stream | https://example.com/stream.m3u8
+
+Official F1 Website | https://www.formula1.com/en/video.html
+F1 TV | https://video.formula1.com/
+YouTube F1 | https://www.youtube.com/c/F1
