@@ -30,7 +30,9 @@ RUN apt-get update && apt-get install -y \
 ```
 
 ### 2. Updated Requirements
-Modified `requirements.txt` to handle psutil compilation issues more gracefully.
+Modified `requirements.txt` to handle psutil compilation issues more gracefully:
+- Fixed `ifcfg` version from `0.20.7` to `0.24` (correct version)
+- Simplified dependency handling
 
 ## Next Steps
 
