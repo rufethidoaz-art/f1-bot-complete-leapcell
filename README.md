@@ -192,4 +192,4 @@ The F1 Telegram bot is now **fully optimized and ready for Leapcell deployment**
 
 ---
 
-**Next Steps**: Follow the `DEPLOYMENT_GUIDE.md` for step-by-step deployment instructions, or run `python validate_deployment.py` to verify your setup before deployment.
+**Next Steps**: Follow the `DEPLOYMENT_GUIDE.md` for step-by-step deployment instructions, or run `python validate_deployment.py` to verify your setup before deployment.# f1-bot-complete-leapcell
