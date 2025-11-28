@@ -33,7 +33,11 @@ asyncio-mqtt==0.16.1
 structlog==23.2.0
 
 # System Dependencies (for playwright) - container optimized
+# System monitoring (avoid compilation issues)
 psutil==5.9.6
+
+# Alternative monitoring if psutil fails
+ifcfg==0.20.7
 
 # Leapcell-specific optimizations
 uvloop==0.18.0; sys_platform != 'win32'
