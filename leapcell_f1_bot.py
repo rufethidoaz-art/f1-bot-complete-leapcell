@@ -20,15 +20,40 @@ import gevent
 from gevent.pywsgi import WSGIServer
 
 # Configure logging
+logger = logging.getLogger(__name__)
+
+
+# Check if we can write to the current directory
+def check_write_permissions():
+    """Check if we can write to the current directory"""
+    try:
+        test_file = "test_write_permissions.tmp"
+        with open(test_file, "w") as f:
+            f.write("test")
+        os.remove(test_file)
+        logger.info("Write permissions available - using file logging")
+        return True
+    except Exception as e:
+        logger.warning(f"Write permissions denied: {e}")
+        logger.warning("Switching to stdout-only logging for read-only environment")
+        return False
+
+
+# Configure logging based on environment
+write_available = check_write_permissions()
+
+if write_available:
+    # Use file logging if write permissions are available
+    log_handlers = [logging.StreamHandler(sys.stdout), logging.FileHandler("bot.log")]
+else:
+    # Use stdout only for read-only environments
+    log_handlers = [logging.StreamHandler(sys.stdout), logging.NullHandler()]
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('bot.log') if os.path.exists('.') else logging.NullHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=log_handlers,
 )
-logger = logging.getLogger(__name__)
 
 # Create Flask app
 app = Flask(__name__)
@@ -73,7 +98,6 @@ TRANSLATIONS = {
 • OpenF1 API (canlı vaxt, sessiya nəticələri)
 • Open-Meteo (hava proqnozları)
 • Formula Timer (canlı vaxt scraper)""",
-
     # Buttons
     "driver_standings": "🏆 Sürücü Sıralamaları",
     "constructor_standings": "🏁 Konstruktor Sıralamaları",
@@ -82,19 +106,16 @@ TRANSLATIONS = {
     "live_timing": "🔴 Canlı Vaxt",
     "streams": "▶️ Yayımlar",
     "help_commands_btn": "ℹ️ Kömək & Əmrlər",
-
     # Standings
     "season_driver_standings": " Pilotların Çempionat Sıralaması",
     "season_constructor_standings": "*Konstruktorların Çempionat Sıralaması- {}*",
     "points": "xal",
-
     # Race results
     "qualifying": "Təsnifat",
     "sprint": "Sprint",
     "race": "Yarış",
     "winner": " - Qalib",
     "fastest_lap": "Ən Sürətli Dövrə: {} ({})",
-
     # Schedule
     "next_race": "🏎️ *Gələn Yarış*",
     "fp1": "FP1",
@@ -105,7 +126,6 @@ TRANSLATIONS = {
     "race": "Yarış",
     "all_times_baku": "_Bütün vaxtlar Bakı vaxtı ilə_",
     "season_completed": "🏁 Mövsüm tamamlandı! Bu il üçün daha yarış yoxdur.",
-
     # Weather
     "weather_forecast": "🌤️ Hava Proqnozu üçün {}",
     "friday": "Cümə",
@@ -113,13 +133,11 @@ TRANSLATIONS = {
     "sunday": "Bazar",
     "race_day": "Bazar (Yarış)",
     "weather_unavailable": "🌦️ Bu yer üçün hava məlumatları mövcud deyil.",
-
     # Live timing
     "no_live_data": "❌ Canlı vaxt məlumatları mövcud deyil\n\nSon nəticələr üçün /lastrace istifadə edin",
     "optimized_error": "❌ Optimallaşdırılmış scraper xətası: {}\n\nSon nəticələr üçün /lastrace istifadə edin",
     "scraper_error": "❌ Xəta: {}\n\nSon nəticələr üçün /lastrace istifadə edin",
     "live_not_available": "❌ Canlı vaxt mövcud deyil\n\nchromium quraşdırmaq üçün: pip install playwright && playwright install chromium",
-
     # Streams
     "available_streams": "🎦 *Mövcud Yayımlar*",
     "tap_to_open": "Açmaq üçün toxunun:",
@@ -134,7 +152,6 @@ TRANSLATIONS = {
     "playstream_usage": "İstifadə:\n/playstream <nömrə> - Yayım linkini alın\n/playstream <URL> - Birbaşa link",
     "direct_stream": "Birbaşa Yayım",
     "copy_open_vlc": "💡 Kopyalayın və VLC Player-də açın",
-
     # F1-themed loading messages
     "loading_pitstop": "🏎️ Pit stop gedir...",
     "loading_formationlap": "🏁 Formation lap başlayır...",
@@ -148,7 +165,6 @@ TRANSLATIONS = {
     "loading_parcferme": "🏁 Parc Fermé rejimi...",
     "loading_redflag": "🚩 Qırmızı bayraq dalğalanır...",
     "loading_safetycar": "🚨 Təhlükəsizlik maşını trasdadır...",
-
     # Errors
     "api_unavailable": "❌ Xidmət mənbəyi baxımdadır. Bir neçə dəqiqə sonra yenidən cəhd edin.",
     "no_standings": "❌ Bu mövsüm üçün sıralama məlumatları tapılmadı.",
@@ -178,13 +194,11 @@ TRANSLATIONS = {
     "no_streams_found": "❌ Yayım tapılmadı",
     "invalid_input": "❌ Yanlış daxiletmə",
     "no_url": "❌ URL yoxdur",
-
     # Commands
     "usage_addstream": "İstifadə: /addstream Ad | URL\n\nNümunə:\n/addstream F1 Live | https://example.com/stream.m3u8",
     "usage_removestream": "İstifadə: /removestream <nömrə>\n\n/streams ilə yayım nömrələrini görün.",
     "invalid_removestream": "❌ Yanlış nömrə. /streams ilə yayım nömrələrini görün.",
     "invalid_playstream": "❌ Yanlış daxiletmə",
-
     # Bot startup
     "bot_starting": "F1 Bot başlayır (Leapcell Test)...",
     "bot_ready": "Bot hazırdır və yeniləmələr üçün gözləyir...\n✅ Leapcell containerized deployment\n✅ Web scraping optimized\n✅ Error handling enhanced",
@@ -212,34 +226,48 @@ TRANSLATIONS = {
 
 # F1-themed loading messages list
 F1_LOADING_MESSAGES = [
-    "loading_pitstop", "loading_parcferme", "loading_redflag",
-    "loading_safetycar", "loading_formationlap", "loading_racecontrol",
-    "loading_telemetry", "loading_timing", "loading_weather",
-    "loading_standings", "loading_results", "loading_streams"
+    "loading_pitstop",
+    "loading_parcferme",
+    "loading_redflag",
+    "loading_safetycar",
+    "loading_formationlap",
+    "loading_racecontrol",
+    "loading_telemetry",
+    "loading_timing",
+    "loading_weather",
+    "loading_standings",
+    "loading_results",
+    "loading_streams",
 ]
+
 
 def get_f1_loading_message():
     """Get a random F1-themed loading message"""
     message_key = random.choice(F1_LOADING_MESSAGES)
     return TRANSLATIONS[message_key]
 
+
 # ==================== IN-MEMORY CACHE SYSTEM ====================
 # Shared cache for all users - prevents IP bans and reduces server load
 LIVE_TIMING_CACHE = {
-    'data': None,
-    'timestamp': 0,
-    'cache_duration': 15  # 15 seconds cache
+    "data": None,
+    "timestamp": 0,
+    "cache_duration": 15,  # 15 seconds cache
 }
+
 
 def get_cached_live_timing():
     """Get live timing from cache or fetch new data"""
     current_time = _time.time()
-    
+
     # Return cached data if still valid
-    if (LIVE_TIMING_CACHE['data'] is not None and 
-        current_time - LIVE_TIMING_CACHE['timestamp'] < LIVE_TIMING_CACHE['cache_duration']):
-        return LIVE_TIMING_CACHE['data']
-    
+    if (
+        LIVE_TIMING_CACHE["data"] is not None
+        and current_time - LIVE_TIMING_CACHE["timestamp"]
+        < LIVE_TIMING_CACHE["cache_duration"]
+    ):
+        return LIVE_TIMING_CACHE["data"]
+
     # Fetch new data
     try:
         if OPTIMIZED_SCRAPER_AVAILABLE:
@@ -248,18 +276,23 @@ def get_cached_live_timing():
             data = scrape_formula_timer_live_timing()
         else:
             return None
-            
+
         # Update cache
-        LIVE_TIMING_CACHE['data'] = data
-        LIVE_TIMING_CACHE['timestamp'] = current_time
+        LIVE_TIMING_CACHE["data"] = data
+        LIVE_TIMING_CACHE["timestamp"] = current_time
         return data
     except Exception as e:
         logging.error(f"Cache fetch error: {e}")
-        return LIVE_TIMING_CACHE['data']  # Return stale data if available
+        return LIVE_TIMING_CACHE["data"]  # Return stale data if available
+
 
 # Optimized scraper integration (with fallback to original)
 try:
-    from optimized_scraper import get_optimized_live_timing, format_timing_data_for_telegram
+    from optimized_scraper import (
+        get_optimized_live_timing,
+        format_timing_data_for_telegram,
+    )
+
     OPTIMIZED_SCRAPER_AVAILABLE = True
 except (ImportError, Exception) as e:
     OPTIMIZED_SCRAPER_AVAILABLE = False
@@ -268,6 +301,7 @@ except (ImportError, Exception) as e:
 # Fallback to original scraper
 try:
     from final_working_scraper import scrape_formula_timer_live_timing
+
     SCRAPER_AVAILABLE = True
 except (ImportError, Exception) as e:
     SCRAPER_AVAILABLE = False
@@ -275,103 +309,246 @@ except (ImportError, Exception) as e:
 
 # Country to flag emoji mapping
 COUNTRY_FLAGS = {
-    "Mexico": "🇲🇽", "Mexico City": "🇲🇽", "USA": "🇺🇸", "United States": "🇺🇸",
-    "Austin": "🇺🇸", "Miami": "🇺🇸", "Las Vegas": "🇺🇸", "Brazil": "🇧🇷",
-    "UK": "🇬🇧", "United Kingdom": "🇬🇧", "Monaco": "🇲🇨", "Italy": "🇮🇹",
-    "Imola": "🇮🇹", "Monza": "🇮🇹", "Spain": "🇪🇸", "Australia": "🇦🇺",
-    "Netherlands": "🇳🇱", "France": "🇫🇷", "Germany": "🇩🇪", "Austria": "🇦🇹",
-    "Canada": "🇨🇦", "Japan": "🇯🇵", "Singapore": "🇸🇬", "Bahrain": "🇧🇭",
-    "Saudi Arabia": "🇸🇦", "Qatar": "🇶🇦", "UAE": "🇦🇪", "United Arab Emirates": "🇦🇪",
-    "Abu Dhabi": "🇦🇪", "China": "🇨🇳", "Belgium": "🇧🇪", "Hungary": "🇭🇺",
-    "Portugal": "🇵🇹", "Russia": "🇷🇺", "Turkey": "🇹🇷", "Azerbaijan": "🇦🇿",
-    "Baku": "🇦🇿", "British": "🇬🇧", "Australian": "🇦🇺", "Dutch": "🇳🇱",
-    "Monegasque": "🇲🇨", "Spanish": "🇪🇸", "Mexican": "🇲🇽", "German": "🇩🇪",
-    "French": "🇫🇷", "Japanese": "🇯🇵", "Canadian": "🇨🇦", "Thai": "🇹🇭",
-    "Finnish": "🇫🇮", "Chinese": "🇨🇳", "Danish": "🇩🇰", "American": "🇺🇸",
-    "Austrian": "🇦🇹", "Italian": "🇮🇹", "Brazilian": "🇧🇷", "New Zealander": "🇳🇿",
-    "Russian": "🇷🇺", "Polish": "🇵🇱", "Swiss": "🇨🇭", "South African": "🇿🇦",
-    "Venezuelan": "🇻🇪", "Indonesian": "🇮🇩", "Argentine": "🇦🇷",
+    "Mexico": "🇲🇽",
+    "Mexico City": "🇲🇽",
+    "USA": "🇺🇸",
+    "United States": "🇺🇸",
+    "Austin": "🇺🇸",
+    "Miami": "🇺🇸",
+    "Las Vegas": "🇺🇸",
+    "Brazil": "🇧🇷",
+    "UK": "🇬🇧",
+    "United Kingdom": "🇬🇧",
+    "Monaco": "🇲🇨",
+    "Italy": "🇮🇹",
+    "Imola": "🇮🇹",
+    "Monza": "🇮🇹",
+    "Spain": "🇪🇸",
+    "Australia": "🇦🇺",
+    "Netherlands": "🇳🇱",
+    "France": "🇫🇷",
+    "Germany": "🇩🇪",
+    "Austria": "🇦🇹",
+    "Canada": "🇨🇦",
+    "Japan": "🇯🇵",
+    "Singapore": "🇸🇬",
+    "Bahrain": "🇧🇭",
+    "Saudi Arabia": "🇸🇦",
+    "Qatar": "🇶🇦",
+    "UAE": "🇦🇪",
+    "United Arab Emirates": "🇦🇪",
+    "Abu Dhabi": "🇦🇪",
+    "China": "🇨🇳",
+    "Belgium": "🇧🇪",
+    "Hungary": "🇭🇺",
+    "Portugal": "🇵🇹",
+    "Russia": "🇷🇺",
+    "Turkey": "🇹🇷",
+    "Azerbaijan": "🇦🇿",
+    "Baku": "🇦🇿",
+    "British": "🇬🇧",
+    "Australian": "🇦🇺",
+    "Dutch": "🇳🇱",
+    "Monegasque": "🇲🇨",
+    "Spanish": "🇪🇸",
+    "Mexican": "🇲🇽",
+    "German": "🇩🇪",
+    "French": "🇫🇷",
+    "Japanese": "🇯🇵",
+    "Canadian": "🇨🇦",
+    "Thai": "🇹🇭",
+    "Finnish": "🇫🇮",
+    "Chinese": "🇨🇳",
+    "Danish": "🇩🇰",
+    "American": "🇺🇸",
+    "Austrian": "🇦🇹",
+    "Italian": "🇮🇹",
+    "Brazilian": "🇧🇷",
+    "New Zealander": "🇳🇿",
+    "Russian": "🇷🇺",
+    "Polish": "🇵🇱",
+    "Swiss": "🇨🇭",
+    "South African": "🇿🇦",
+    "Venezuelan": "🇻🇪",
+    "Indonesian": "🇮🇩",
+    "Argentine": "🇦🇷",
     # Country codes (for OpenF1 API) - IOC codes
-    "NED": "🇳🇱", "GBR": "🇬🇧", "AUS": "🇦🇺", "MCO": "🇲🇨", "ESP": "🇪🇸",
-    "MEX": "🇲🇽", "GER": "🇩🇪", "FRA": "🇫🇷", "JPN": "🇯🇵", "CAN": "🇨🇦",
-    "THA": "🇹🇭", "FIN": "🇫ィ", "CHN": "🇨🇳", "DEN": "🇩🇰", "USA": "🇺🇸",
-    "AUT": "🇦🇹", "ITA": "🇮🇹", "BRA": "🇧🇷", "NZL": "🇳🇿", "RUS": "🇷🇺",
-    "POL": "🇵🇱", "CHE": "🇨🇭", "ZAF": "🇿🇦", "VEN": "🇻🇪", "IDN": "🇮🇩",
-    "ARG": "🇦🇷", "NLD": "🇳🇱", "DEU": "🇩🇪", "BEL": "🇧𝑬", "PRT": "🇵🇹",
-    "TUR": "🇹🇷", "AZE": "🇦🇿", "ARE": "🇦🇪", "QAT": "🇶🇦", "BHR": "🇧🇭",
-    "SAU": "🇸🇦", "SGP": "🇸🇬", "HUN": "🇭🇺", "Argentinian": "🇦🇷",
-    "Belgian": "🇧🇪", "Emirati": "🇦🇪", "Qatari": "🇶🇦", "Bahraini": "🇧🇭",
-    "Saudi": "🇸🇦", "Singaporean": "🇸🇬", "Hungarian": "🇭🇺", "Portuguese": "🇵🇹",
-    "Turkish": "🇹🇷", "Azerbaijani": "🇦🇿", "New Zealand": "🇳🇿",
-    "Thailand": "🇹🇭", "Colombian": "🇨🇴", "NZL": "🇳🇿", "THA": "🇹🇭",
-    "GBR": "🇬🇧", "AUS": "🇦🇺", "NED": "🇳🇱", "MCO": "🇲🇨", "ESP": "🇪🇸",
-    "MEX": "🇲🇽", "GER": "🇩🇪", "FRA": "🇫🇷", "JPN": "🇯🇵", "CAN": "🇨🇦",
-    "FIN": "🇫ィ", "CHN": "🇨🇳", "DEN": "🇩🇰", "AUT": "🇦🇹", "ITA": "🇮🇹",
-    "BRA": "🇧🇷", "RUS": "🇷🇺", "POL": "🇵🇱", "CHE": "🇨🇭", "ZAF": "🇿🇦",
-    "VEN": "🇻𝑬", "IDN": "🇮🇩", "COL": "🇨🇴",
+    "NED": "🇳🇱",
+    "GBR": "🇬🇧",
+    "AUS": "🇦🇺",
+    "MCO": "🇲🇨",
+    "ESP": "🇪🇸",
+    "MEX": "🇲🇽",
+    "GER": "🇩🇪",
+    "FRA": "🇫🇷",
+    "JPN": "🇯🇵",
+    "CAN": "🇨🇦",
+    "THA": "🇹🇭",
+    "FIN": "🇫ィ",
+    "CHN": "🇨🇳",
+    "DEN": "🇩🇰",
+    "USA": "🇺🇸",
+    "AUT": "🇦🇹",
+    "ITA": "🇮🇹",
+    "BRA": "🇧🇷",
+    "NZL": "🇳🇿",
+    "RUS": "🇷🇺",
+    "POL": "🇵🇱",
+    "CHE": "🇨🇭",
+    "ZAF": "🇿🇦",
+    "VEN": "🇻🇪",
+    "IDN": "🇮🇩",
+    "ARG": "🇦🇷",
+    "NLD": "🇳🇱",
+    "DEU": "🇩🇪",
+    "BEL": "🇧𝑬",
+    "PRT": "🇵🇹",
+    "TUR": "🇹🇷",
+    "AZE": "🇦🇿",
+    "ARE": "🇦🇪",
+    "QAT": "🇶🇦",
+    "BHR": "🇧🇭",
+    "SAU": "🇸🇦",
+    "SGP": "🇸🇬",
+    "HUN": "🇭🇺",
+    "Argentinian": "🇦🇷",
+    "Belgian": "🇧🇪",
+    "Emirati": "🇦🇪",
+    "Qatari": "🇶🇦",
+    "Bahraini": "🇧🇭",
+    "Saudi": "🇸🇦",
+    "Singaporean": "🇸🇬",
+    "Hungarian": "🇭🇺",
+    "Portuguese": "🇵🇹",
+    "Turkish": "🇹🇷",
+    "Azerbaijani": "🇦🇿",
+    "New Zealand": "🇳🇿",
+    "Thailand": "🇹🇭",
+    "Colombian": "🇨🇴",
+    "NZL": "🇳🇿",
+    "THA": "🇹🇭",
+    "GBR": "🇬🇧",
+    "AUS": "🇦🇺",
+    "NED": "🇳🇱",
+    "MCO": "🇲🇨",
+    "ESP": "🇪🇸",
+    "MEX": "🇲🇽",
+    "GER": "🇩🇪",
+    "FRA": "🇫🇷",
+    "JPN": "🇯🇵",
+    "CAN": "🇨🇦",
+    "FIN": "🇫ィ",
+    "CHN": "🇨🇳",
+    "DEN": "🇩🇰",
+    "AUT": "🇦🇹",
+    "ITA": "🇮🇹",
+    "BRA": "🇧🇷",
+    "RUS": "🇷🇺",
+    "POL": "🇵🇱",
+    "CHE": "🇨🇭",
+    "ZAF": "🇿🇦",
+    "VEN": "🇻𝑬",
+    "IDN": "🇮🇩",
+    "COL": "🇨🇴",
 }
 
 # Driver number to nationality mapping (2025 season)
 DRIVER_NATIONALITIES = {
-    1: "NED", 4: "GBR", 5: "BRA", 6: "FRA", 10: "FRA", 12: "ITA", 14: "ESP",
-    16: "MCO", 18: "CAN", 22: "JPN", 23: "THA", 27: "GER", 30: "NZL",
-    31: "FRA", 43: "ARG", 44: "GBR", 55: "ESP", 63: "GBR", 81: "AUS", 87: "GBR",
+    1: "NED",
+    4: "GBR",
+    5: "BRA",
+    6: "FRA",
+    10: "FRA",
+    12: "ITA",
+    14: "ESP",
+    16: "MCO",
+    18: "CAN",
+    22: "JPN",
+    23: "THA",
+    27: "GER",
+    30: "NZL",
+    31: "FRA",
+    43: "ARG",
+    44: "GBR",
+    55: "ESP",
+    63: "GBR",
+    81: "AUS",
+    87: "GBR",
 }
 
 # Driver acronym to full name mapping
 DRIVER_NAMES = {
-    "VER": "Max Verstappen", "HAM": "Lewis Hamilton", "LEC": "Charles Leclerc",
-    "SAI": "Carlos Sainz", "NOR": "Lando Norris", "PIA": "Oscar Piastri",
-    "RUS": "George Russell", "STR": "Lance Stroll", "ALO": "Fernando Alonso",
-    "OCO": "Esteban Ocon", "GAS": "Pierre Gasly", "TSU": "Yuki Tsunoda",
-    "HUL": "Nico Hulkenberg", "MAG": "Kevin Magnussen", "BOT": "Valtteri Bottas",
-    "ZHO": "Zhou Guanyu", "PER": "Sergio Perez", "RIC": "Daniel Ricciardo",
-    "ALB": "Alexander Albon", "SAR": "Logan Sargeant", "LAW": "Liam Lawson",
-    "BEA": "Oliver Bearman", "DOO": "Jack Doohan", "ANT": "Kimi Antonelli",
+    "VER": "Max Verstappen",
+    "HAM": "Lewis Hamilton",
+    "LEC": "Charles Leclerc",
+    "SAI": "Carlos Sainz",
+    "NOR": "Lando Norris",
+    "PIA": "Oscar Piastri",
+    "RUS": "George Russell",
+    "STR": "Lance Stroll",
+    "ALO": "Fernando Alonso",
+    "OCO": "Esteban Ocon",
+    "GAS": "Pierre Gasly",
+    "TSU": "Yuki Tsunoda",
+    "HUL": "Nico Hulkenberg",
+    "MAG": "Kevin Magnussen",
+    "BOT": "Valtteri Bottas",
+    "ZHO": "Zhou Guanyu",
+    "PER": "Sergio Perez",
+    "RIC": "Daniel Ricciardo",
+    "ALB": "Alexander Albon",
+    "SAR": "Logan Sargeant",
+    "LAW": "Liam Lawson",
+    "BEA": "Oliver Bearman",
+    "DOO": "Jack Doohan",
+    "ANT": "Kimi Antonelli",
 }
 
 # Cache for driver data from Ergast API
 _DRIVER_CACHE = {}
 
+
 def get_driver_nationality_from_ergast(driver_name):
     """Get driver nationality from Ergast API by matching name"""
     global _DRIVER_CACHE
-    
+
     # Return from cache if available
     if driver_name in _DRIVER_CACHE:
         return _DRIVER_CACHE[driver_name]
-    
+
     try:
         now = datetime.now()
         season = now.year if now.month > 3 else now.year - 1
-        
+
         apis = [f"https://api.jolpi.ca/ergast/f1/{season}/drivers.json"]
-        
+
         for api_url in apis:
             try:
                 response = requests.get(api_url, timeout=10)
                 if response.status_code == 200:
                     data = response.json()
-                    drivers = data.get("MRData", {}).get("DriverTable", {}).get("Drivers", [])
-                    
+                    drivers = (
+                        data.get("MRData", {}).get("DriverTable", {}).get("Drivers", [])
+                    )
+
                     for driver in drivers:
                         given_name = driver.get("givenName", "")
                         family_name = driver.get("familyName", "")
                         full_name = f"{given_name} {family_name}"
                         nationality = driver.get("nationality", "")
-                        
+
                         # Cache with multiple variations
                         _DRIVER_CACHE[full_name] = nationality
                         _DRIVER_CACHE[full_name.lower()] = nationality
                         _DRIVER_CACHE[family_name] = nationality
                         _DRIVER_CACHE[family_name.lower()] = nationality
-                    
+
                     # Try exact match first
                     if driver_name in _DRIVER_CACHE:
                         return _DRIVER_CACHE[driver_name]
                     if driver_name.lower() in _DRIVER_CACHE:
                         return _DRIVER_CACHE[driver_name.lower()]
-                    
+
                     # Try matching by last name only
                     parts = driver_name.split()
                     if len(parts) >= 2:
@@ -380,44 +557,46 @@ def get_driver_nationality_from_ergast(driver_name):
                             return _DRIVER_CACHE[last_name]
                         if last_name.lower() in _DRIVER_CACHE:
                             return _DRIVER_CACHE[last_name.lower()]
-                    
+
                     return ""
             except:
                 continue
     except:
         pass
-    
+
     return ""
+
 
 def get_country_flag(nationality):
     """Get flag emoji for a nationality"""
     if not nationality:
         return "🏳️"
-    
+
     nationality = nationality.strip()
-    
+
     # Direct lookup
     if nationality in COUNTRY_FLAGS:
         return COUNTRY_FLAGS[nationality]
-    
+
     # Try uppercase, lowercase, title case
     for transform in [str.upper, str.lower, str.title]:
         if transform(nationality) in COUNTRY_FLAGS:
             return COUNTRY_FLAGS[transform(nationality)]
-    
+
     # Partial match
     nationality_lower = nationality.lower()
     for key, flag in COUNTRY_FLAGS.items():
         if key.lower() in nationality_lower or nationality_lower in key.lower():
             return flag
-    
+
     return "🏳️"
+
 
 def to_roman(num):
     """Convert integer to Roman numeral"""
     val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
     syb = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
-    roman_num = ''
+    roman_num = ""
     i = 0
     while num > 0:
         for _ in range(num // val[i]):
@@ -426,15 +605,18 @@ def to_roman(num):
         i += 1
     return roman_num
 
+
 def get_race_points(position):
     """Get points for race position (F1 scoring system)"""
     points_map = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
     return points_map.get(position, 0)
 
+
 def get_sprint_points(position):
     """Get points for sprint race position (F1 sprint scoring system)"""
     sprint_points_map = {1: 8, 2: 7, 3: 6, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1}
     return sprint_points_map.get(position, 0)
+
 
 # Comprehensive F1 circuit coordinates for weather API
 CIRCUIT_COORDS = {
@@ -464,33 +646,49 @@ CIRCUIT_COORDS = {
     "Lusail International Circuit": (25.4888, 51.4543),
     "Yas Marina Circuit": (24.4672, 54.6031),
     # Alternative/common names
-    "Sakhir": (26.0325, 50.5106), "Jeddah": (21.6319, 39.1044),
-    "Melbourne": (-37.8497, 144.9680), "Suzuka": (34.8431, 136.5410),
-    "Shanghai": (31.3389, 121.2197), "Miami": (25.9581, -80.2389),
-    "Imola": (44.3439, 11.7167), "Monaco": (43.7347, 7.4206),
-    "Barcelona": (41.5699, 2.2570), "Montreal": (45.5000, -73.5228),
-    "Spielberg": (47.2197, 14.7647), "Silverstone": (52.0720, -1.0170),
-    "Budapest": (47.5789, 19.2486), "Spa": (50.4372, 5.9714),
-    "Zandvoort": (52.3888, 4.5409), "Monza": (45.6190, 9.2816),
-    "Singapore": (1.2914, 103.8632), "Baku": (40.4093, 49.8671),
-    "Austin": (30.1328, -97.6411), "Mexico City": (19.4042, -99.0907),
-    "Sao Paulo": (-23.7036, -46.6997), "Interlagos": (-23.7036, -46.6997),
-    "Las Vegas": (36.1147, -115.1739), "Lusail": (25.4888, 51.4543),
+    "Sakhir": (26.0325, 50.5106),
+    "Jeddah": (21.6319, 39.1044),
+    "Melbourne": (-37.8497, 144.9680),
+    "Suzuka": (34.8431, 136.5410),
+    "Shanghai": (31.3389, 121.2197),
+    "Miami": (25.9581, -80.2389),
+    "Imola": (44.3439, 11.7167),
+    "Monaco": (43.7347, 7.4206),
+    "Barcelona": (41.5699, 2.2570),
+    "Montreal": (45.5000, -73.5228),
+    "Spielberg": (47.2197, 14.7647),
+    "Silverstone": (52.0720, -1.0170),
+    "Budapest": (47.5789, 19.2486),
+    "Spa": (50.4372, 5.9714),
+    "Zandvoort": (52.3888, 4.5409),
+    "Monza": (45.6190, 9.2816),
+    "Singapore": (1.2914, 103.8632),
+    "Baku": (40.4093, 49.8671),
+    "Austin": (30.1328, -97.6411),
+    "Mexico City": (19.4042, -99.0907),
+    "Sao Paulo": (-23.7036, -46.6997),
+    "Interlagos": (-23.7036, -46.6997),
+    "Las Vegas": (36.1147, -115.1739),
+    "Lusail": (25.4888, 51.4543),
     "Abu Dhabi": (24.4672, 54.6031),
 }
+
 
 def get_circuit_coordinates(location_name):
     """Get coordinates for a circuit with fuzzy matching"""
     # Direct match first
     if location_name in CIRCUIT_COORDS:
         return CIRCUIT_COORDS[location_name]
-    
+
     # Fuzzy matching for partial names
     location_lower = location_name.lower()
     for circuit_name, coords in CIRCUIT_COORDS.items():
-        if location_lower in circuit_name.lower() or circuit_name.lower() in location_lower:
+        if (
+            location_lower in circuit_name.lower()
+            or circuit_name.lower() in location_lower
+        ):
             return coords
-    
+
     # Geocoding fallback
     try:
         geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={location_name}&count=1"
@@ -502,8 +700,9 @@ def get_circuit_coordinates(location_name):
                 return (result["latitude"], result["longitude"])
     except Exception:
         pass
-    
+
     return None
+
 
 def to_baku(d, t):
     """Convert UTC time to Baku time"""
@@ -525,14 +724,15 @@ def to_baku(d, t):
     except Exception:
         return f"{d} {t}"
 
+
 def get_current_standings():
     """Get current F1 driver standings"""
     try:
         now = datetime.now()
         season = now.year if now.month > 3 else now.year - 1
-        
+
         apis = [f"https://api.jolpi.ca/ergast/f1/{season}/driverStandings.json"]
-        
+
         data = None
         for api_url in apis:
             try:
@@ -542,12 +742,16 @@ def get_current_standings():
                     break
             except:
                 continue
-        
+
         if not data:
             return TRANSLATIONS["api_unavailable"]
-        
+
         try:
-            standings_list = data.get("MRData", {}).get("StandingsTable", {}).get("StandingsLists", [])
+            standings_list = (
+                data.get("MRData", {})
+                .get("StandingsTable", {})
+                .get("StandingsLists", [])
+            )
             if not standings_list:
                 return TRANSLATIONS["no_standings"]
 
@@ -558,9 +762,9 @@ def get_current_standings():
             actual_season = standings_list[0].get("season", season)
         except:
             return TRANSLATIONS["invalid_data"]
-        
+
         message = f"🏆 {actual_season} {TRANSLATIONS['season_driver_standings']}\n\n"
-        
+
         for driver in standings:
             try:
                 pos = driver.get("position", "?")
@@ -571,23 +775,26 @@ def get_current_standings():
                 nationality = driver_info.get("nationality", "")
                 flag = get_country_flag(nationality)
                 points = driver.get("points", "0")
-                
-                message += f"{pos}. {flag} {full_name} ({points} {TRANSLATIONS['points']})\n"
+
+                message += (
+                    f"{pos}. {flag} {full_name} ({points} {TRANSLATIONS['points']})\n"
+                )
             except:
                 continue
-        
+
         return message
     except:
         return TRANSLATIONS["service_unavailable"]
+
 
 def get_constructor_standings():
     """Get constructor standings"""
     try:
         now = datetime.now()
         season = now.year if now.month > 3 else now.year - 1
-        
+
         apis = [f"https://api.jolpi.ca/ergast/f1/{season}/constructorStandings.json"]
-        
+
         data = None
         for api_url in apis:
             try:
@@ -597,12 +804,16 @@ def get_constructor_standings():
                     break
             except:
                 continue
-        
+
         if not data:
             return TRANSLATIONS["api_unavailable"]
-        
+
         try:
-            standings_list = data.get("MRData", {}).get("StandingsTable", {}).get("StandingsLists", [])
+            standings_list = (
+                data.get("MRData", {})
+                .get("StandingsTable", {})
+                .get("StandingsLists", [])
+            )
             if not standings_list:
                 return TRANSLATIONS["no_constructor_standings"]
 
@@ -613,45 +824,57 @@ def get_constructor_standings():
             actual_season = standings_list[0].get("season", season)
         except:
             return TRANSLATIONS["invalid_data"]
-        
+
         team_flags = {
-            "Red Bull": "🇦🇹", "Ferrari": "🇮🇹", "Mercedes": "🇩🇪", "McLaren": "🇬🇧",
-            "Aston Martin": "🇬🇧", "Alpine": "🇫🇷", "Williams": "🇬🇧", "AlphaTauri": "🇮🇹",
-            "RB": "🇮🇹", "Alfa Romeo": "🇨🇭", "Sauber": "🇨🇭", "Haas": "🇺🇸"
+            "Red Bull": "🇦🇹",
+            "Ferrari": "🇮🇹",
+            "Mercedes": "🇩🇪",
+            "McLaren": "🇬🇧",
+            "Aston Martin": "🇬🇧",
+            "Alpine": "🇫🇷",
+            "Williams": "🇬🇧",
+            "AlphaTauri": "🇮🇹",
+            "RB": "🇮🇹",
+            "Alfa Romeo": "🇨🇭",
+            "Sauber": "🇨🇭",
+            "Haas": "🇺🇸",
         }
-        
+
         message = f"🏆 *{TRANSLATIONS['season_constructor_standings'].format(actual_season)}*\n\n"
-        
+
         for pos, team in enumerate(standings, 1):
             try:
                 constructor = team.get("Constructor", {})
                 team_name = constructor.get("name", "Unknown Team")
                 points = team.get("points", "0")
-                
+
                 flag = ""
                 for key, emoji in team_flags.items():
                     if key in team_name:
                         flag = emoji + " "
                         break
-                
-                message += f"{pos}. {flag}*{team_name}* - {points} {TRANSLATIONS['points']}\n"
+
+                message += (
+                    f"{pos}. {flag}*{team_name}* - {points} {TRANSLATIONS['points']}\n"
+                )
             except:
                 continue
-        
+
         return message
     except:
         return TRANSLATIONS["service_unavailable"]
+
 
 def get_last_session_results():
     """Get last session results using OpenF1 API with enhanced data"""
     try:
         now = datetime.now(ZoneInfo("UTC"))
         current_year = now.year
-        
+
         years_to_check = [current_year]
         if now.month <= 3:
             years_to_check.insert(0, current_year - 1)
-        
+
         sessions = []
         for year in years_to_check:
             try:
@@ -661,56 +884,64 @@ def get_last_session_results():
                     sessions.extend(sessions_response.json())
             except:
                 continue
-        
+
         if not sessions:
             return TRANSLATIONS["no_sessions"]
-        
+
         latest_session = None
         for session in reversed(sessions):
             session_start = session.get("date_start")
             session_type = session.get("session_type")
-            
+
             if session_start and session_type in ["Qualifying", "Sprint", "Race"]:
                 try:
-                    start_dt = datetime.fromisoformat(session_start.replace('Z', '+00:00'))
+                    start_dt = datetime.fromisoformat(
+                        session_start.replace("Z", "+00:00")
+                    )
                     if start_dt.tzinfo is None:
                         start_dt = start_dt.replace(tzinfo=ZoneInfo("UTC"))
-                    
+
                     if start_dt < (now - timedelta(hours=2)):
                         latest_session = session
                         break
                 except:
                     continue
-        
+
         if not latest_session:
             return TRANSLATIONS["no_recent_sessions"]
-        
+
         session_key = latest_session.get("session_key")
         session_type = latest_session.get("session_type")
         meeting_name = latest_session.get("meeting_name", "Grand Prix")
         country_name = latest_session.get("country_name", "")
         flag = get_country_flag(country_name)
-        
+
         # Get positions
         results_url = f"https://api.openf1.org/v1/position?session_key={session_key}"
         results_response = requests.get(results_url, timeout=10)
         if results_response.status_code != 200:
             return TRANSLATIONS["no_results"].format(session_type)
-        
+
         positions_data = results_response.json()
         if not positions_data:
             return TRANSLATIONS["no_position_data"].format(session_type)
-        
+
         final_positions = {}
         for pos_entry in positions_data:
             driver_number = pos_entry.get("driver_number")
             position = pos_entry.get("position")
             date = pos_entry.get("date")
-            
+
             if driver_number and position and date:
-                if driver_number not in final_positions or date > final_positions[driver_number]["date"]:
-                    final_positions[driver_number] = {"position": position, "date": date}
-        
+                if (
+                    driver_number not in final_positions
+                    or date > final_positions[driver_number]["date"]
+                ):
+                    final_positions[driver_number] = {
+                        "position": position,
+                        "date": date,
+                    }
+
         # Get driver info
         drivers_url = f"https://api.openf1.org/v1/drivers?session_key={session_key}"
         drivers_response = requests.get(drivers_url, timeout=10)
@@ -720,56 +951,71 @@ def get_last_session_results():
                 driver_number = driver.get("driver_number")
                 if driver_number:
                     driver_name = f"{driver.get('first_name', '')} {driver.get('last_name', '')}".strip()
-                    country_code = driver.get("country_code") or DRIVER_NATIONALITIES.get(driver_number, "")
-                    
+                    country_code = driver.get(
+                        "country_code"
+                    ) or DRIVER_NATIONALITIES.get(driver_number, "")
+
                     drivers_info[driver_number] = {
                         "name": driver_name,
                         "country": country_code,
-                        "team": driver.get("team_name", "")
+                        "team": driver.get("team_name", ""),
                     }
-        
+
         # Get intervals and fastest lap for Race sessions
         intervals_data = {}
         fastest_lap_driver = None
         fastest_lap_time = None
-        
+
         if session_type == "Race":
             try:
-                intervals_url = f"https://api.openf1.org/v1/intervals?session_key={session_key}"
+                intervals_url = (
+                    f"https://api.openf1.org/v1/intervals?session_key={session_key}"
+                )
                 intervals_response = requests.get(intervals_url, timeout=10)
                 if intervals_response.status_code == 200:
                     for interval in intervals_response.json():
                         driver_number = interval.get("driver_number")
                         date = interval.get("date")
                         if driver_number and date:
-                            if driver_number not in intervals_data or date > intervals_data[driver_number]["date"]:
+                            if (
+                                driver_number not in intervals_data
+                                or date > intervals_data[driver_number]["date"]
+                            ):
                                 intervals_data[driver_number] = {
                                     "gap_to_leader": interval.get("gap_to_leader", 0),
-                                    "date": date
+                                    "date": date,
                                 }
             except:
                 pass
-            
+
             try:
                 laps_url = f"https://api.openf1.org/v1/laps?session_key={session_key}"
                 laps_response = requests.get(laps_url, timeout=10)
                 if laps_response.status_code == 200:
                     for lap in laps_response.json():
                         lap_duration = lap.get("lap_duration")
-                        if lap_duration and (fastest_lap_time is None or lap_duration < fastest_lap_time):
+                        if lap_duration and (
+                            fastest_lap_time is None or lap_duration < fastest_lap_time
+                        ):
                             fastest_lap_time = lap_duration
                             fastest_lap_driver = lap.get("driver_number")
             except:
                 pass
-        
-        sorted_positions = sorted(final_positions.items(), key=lambda x: x[1]["position"])
+
+        sorted_positions = sorted(
+            final_positions.items(), key=lambda x: x[1]["position"]
+        )
         if not sorted_positions:
             return TRANSLATIONS["no_final_positions"].format(session_type)
-        
-        emoji = "🏁" if session_type == "Sprint" else "⏱️" if session_type == "Qualifying" else "🏆"
+
+        emoji = (
+            "🏁"
+            if session_type == "Sprint"
+            else "⏱️" if session_type == "Qualifying" else "🏆"
+        )
         session_type_az = TRANSLATIONS.get(session_type.lower(), session_type)
         message = f"{emoji} {flag} *{meeting_name} {session_type_az}*\n\n"
-        
+
         for driver_number, pos_data in sorted_positions[:20]:
             position = pos_data["position"]
             driver_info = drivers_info.get(driver_number, {})
@@ -777,19 +1023,19 @@ def get_last_session_results():
             driver_country = driver_info.get("country", "")
             driver_flag = get_country_flag(driver_country)
             team_name = driver_info.get("team", "")
-            
+
             line = f"{position}. {driver_flag} {driver_name}"
-            
+
             if session_type in ["Race", "Sprint"] and team_name:
                 line += f" ({team_name})"
-            
+
             if session_type == "Race" and driver_number in intervals_data:
                 gap = intervals_data[driver_number]["gap_to_leader"]
                 if position == 1:
                     line += f" - {TRANSLATIONS['winner']}"
                 elif gap > 0:
                     line += f" +{gap:.3f}s"
-            
+
             if session_type == "Race":
                 points = get_race_points(position)
                 if points > 0:
@@ -800,29 +1046,32 @@ def get_last_session_results():
                 points = get_sprint_points(position)
                 if points > 0:
                     line += f" ({points} {TRANSLATIONS['points']})"
-            
+
             message += line + "\n"
-        
+
         if session_type == "Race" and fastest_lap_driver and fastest_lap_time:
             fastest_driver_info = drivers_info.get(fastest_lap_driver, {})
-            fastest_name = fastest_driver_info.get("name", f"Driver {fastest_lap_driver}")
+            fastest_name = fastest_driver_info.get(
+                "name", f"Driver {fastest_lap_driver}"
+            )
             minutes = int(fastest_lap_time // 60)
             seconds = fastest_lap_time % 60
             message += f"\n⚡ {TRANSLATIONS['fastest_lap'].format(fastest_name, minutes, seconds)}"
-        
+
         return message
-        
+
     except Exception as e:
         return TRANSLATIONS["error_fetching_session"].format(str(e))
+
 
 def get_next_race():
     """Get next race schedule using Jolpica API"""
     try:
         now = datetime.now(ZoneInfo("UTC"))
         season = now.year if now.month > 3 else now.year - 1
-        
+
         apis = [f"https://api.jolpi.ca/ergast/f1/{season}.json"]
-        
+
         data = None
         for api_url in apis:
             try:
@@ -832,54 +1081,54 @@ def get_next_race():
                     break
             except:
                 continue
-        
+
         if not data:
             return TRANSLATIONS["api_unavailable"]
-        
+
         try:
             races = data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
             if not races:
                 return TRANSLATIONS["no_race_schedule"]
         except:
             return TRANSLATIONS["invalid_data"]
-        
+
         # Find next race
         next_race = None
         for race in races:
             try:
                 race_date = race.get("date")
                 race_time = race.get("time", "00:00")
-                
+
                 if race_date:
                     race_dt_str = f"{race_date}T{race_time.replace('Z', '')}"
                     race_dt = datetime.fromisoformat(race_dt_str)
                     if race_dt.tzinfo is None:
                         race_dt = race_dt.replace(tzinfo=ZoneInfo("UTC"))
-                    
+
                     if race_dt >= now:
                         next_race = race
                         break
             except:
                 continue
-        
+
         if not next_race:
             return TRANSLATIONS["season_completed"]
-        
+
         # Extract race info
         race_name = next_race.get("raceName", "Grand Prix")
         circuit = next_race.get("Circuit", {})
         location = circuit.get("Location", {})
         locality = location.get("locality", "")
         country = location.get("country", "")
-        
+
         flag = get_country_flag(country)
-        
+
         message = f"{TRANSLATIONS['next_race']}\n"
         message += f"{flag} *{race_name}*\n\n"
-        
+
         # Collect all sessions with times
         sessions = []
-        
+
         # FP1
         fp1 = next_race.get("FirstPractice", {})
         fp1_date = fp1.get("date")
@@ -927,17 +1176,17 @@ def get_next_race():
         race_time = next_race.get("time", "TBA")
         if race_date and race_time != "TBA":
             sessions.append((race_date, race_time, TRANSLATIONS["race"]))
-        
+
         # Sort sessions by date and time
         sessions.sort(key=lambda x: (x[0], x[1]))
-        
+
         # Display sessions in chronological order
         for session_date, session_time, session_name in sessions:
             baku_time = to_baku(session_date, session_time)
             message += f"*{session_name}:* {baku_time}\n"
-        
+
         message += f"\n_{TRANSLATIONS['all_times_baku']}_\n"
-        
+
         # Add weather forecast
         try:
             coords = get_circuit_coordinates(locality)
@@ -946,33 +1195,40 @@ def get_next_race():
                 friday = race_date_obj - timedelta(days=2)
                 saturday = race_date_obj - timedelta(days=1)
                 sunday = race_date_obj
-                
+
                 meteo_url = f"https://api.open-meteo.com/v1/forecast?latitude={coords[0]}&longitude={coords[1]}&daily=temperature_2m_max,precipitation_probability_max,wind_speed_10m_max&start_date={friday.date()}&end_date={sunday.date()}"
                 weather_response = requests.get(meteo_url, timeout=15)
-                
+
                 if weather_response.status_code == 200:
                     weather_data = weather_response.json()
                     daily = weather_data.get("daily", {})
                     temps = daily.get("temperature_2m_max", [])
                     rain_probs = daily.get("precipitation_probability_max", [])
                     wind_speeds = daily.get("wind_speed_10m_max", [])
-                    
+
                     if temps and len(temps) >= 3:
                         message += "\n🌤️ *Hava proqnozu:*\n"
-                        days = [TRANSLATIONS["friday"], TRANSLATIONS["saturday"], TRANSLATIONS["sunday"]]
+                        days = [
+                            TRANSLATIONS["friday"],
+                            TRANSLATIONS["saturday"],
+                            TRANSLATIONS["sunday"],
+                        ]
                         for i, day in enumerate(days):
                             if i < len(temps):
                                 temp = temps[i]
                                 rain = rain_probs[i] if i < len(rain_probs) else 0
                                 wind = wind_speeds[i] if i < len(wind_speeds) else 0
-                                rain_icon = "🌧️" if rain >= 60 else "⛅" if rain >= 30 else "☀️"
+                                rain_icon = (
+                                    "🌧️" if rain >= 60 else "⛅" if rain >= 30 else "☀️"
+                                )
                                 message += f"{day}: {temp:.1f}°C {rain_icon} {int(rain)}% 💨{wind:.1f}km/h\n"
         except:
             pass
-        
+
         return message
     except Exception as e:
         return TRANSLATIONS["error_fetching_race"].format(str(e))
+
 
 def load_user_streams():
     """Load user streams from JSON file"""
@@ -984,6 +1240,7 @@ def load_user_streams():
     except:
         return {}
 
+
 def save_user_streams(data):
     """Save user streams to JSON file"""
     try:
@@ -993,11 +1250,12 @@ def save_user_streams(data):
     except:
         return False
 
+
 def get_streams(user_id=None):
     """Read stream links and return message with keyboard"""
     try:
         all_streams = []
-        
+
         # Load global streams
         if os.path.exists("streams.txt"):
             with open("streams.txt", "r", encoding="utf-8") as f:
@@ -1006,38 +1264,62 @@ def get_streams(user_id=None):
                     if line and not line.startswith("#"):
                         if "|" in line:
                             parts = line.split("|", 1)
-                            all_streams.append({"name": parts[0].strip(), "url": parts[1].strip()})
-        
+                            all_streams.append(
+                                {"name": parts[0].strip(), "url": parts[1].strip()}
+                            )
+
         # Load user streams
         user_streams_data = load_user_streams()
         if user_id and str(user_id) in user_streams_data:
             for stream in user_streams_data[str(user_id)]:
-                all_streams.append({"name": stream.get("name"), "url": stream.get("url")})
-        
+                all_streams.append(
+                    {"name": stream.get("name"), "url": stream.get("url")}
+                )
+
         if not all_streams:
             return TRANSLATIONS["no_streams"], None
-        
+
         keyboard = []
         for idx, stream in enumerate(all_streams, 1):
-            keyboard.append([InlineKeyboardButton(f"🎦 {stream['name']}", url=stream['url'])])
+            keyboard.append(
+                [InlineKeyboardButton(f"🎦 {stream['name']}", url=stream["url"])]
+            )
         keyboard = InlineKeyboardMarkup(keyboard)
-        message = f"{TRANSLATIONS['available_streams']}\n\n{TRANSLATIONS['tap_to_open']}"
-        
+        message = (
+            f"{TRANSLATIONS['available_streams']}\n\n{TRANSLATIONS['tap_to_open']}"
+        )
+
         return message, keyboard
     except Exception as e:
         return f"❌ Error: {str(e)}", None
 
+
 # ==================== TELEGRAM BOT HANDLERS ====================
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send welcome message with comprehensive inline keyboard"""
     keyboard = [
-        [InlineKeyboardButton(TRANSLATIONS["driver_standings"], callback_data="standings"),
-         InlineKeyboardButton(TRANSLATIONS["constructor_standings"], callback_data="constructors")],
-        [InlineKeyboardButton(TRANSLATIONS["last_session"], callback_data="lastrace"),
-         InlineKeyboardButton(TRANSLATIONS["schedule_weather"], callback_data="nextrace")],
-        [InlineKeyboardButton(TRANSLATIONS["live_timing"], callback_data="live"),
-         InlineKeyboardButton(TRANSLATIONS["streams"], callback_data="streams")],
+        [
+            InlineKeyboardButton(
+                TRANSLATIONS["driver_standings"], callback_data="standings"
+            ),
+            InlineKeyboardButton(
+                TRANSLATIONS["constructor_standings"], callback_data="constructors"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                TRANSLATIONS["last_session"], callback_data="lastrace"
+            ),
+            InlineKeyboardButton(
+                TRANSLATIONS["schedule_weather"], callback_data="nextrace"
+            ),
+        ],
+        [
+            InlineKeyboardButton(TRANSLATIONS["live_timing"], callback_data="live"),
+            InlineKeyboardButton(TRANSLATIONS["streams"], callback_data="streams"),
+        ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -1050,19 +1332,41 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             welcome_text, reply_markup=reply_markup, parse_mode="Markdown"
         )
 
+
 async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show menu buttons"""
     keyboard = [
-        [InlineKeyboardButton(TRANSLATIONS["driver_standings"], callback_data="standings"),
-         InlineKeyboardButton(TRANSLATIONS["constructor_standings"], callback_data="constructors")],
-        [InlineKeyboardButton(TRANSLATIONS["last_session"], callback_data="lastrace"),
-         InlineKeyboardButton(TRANSLATIONS["schedule_weather"], callback_data="nextrace")],
-        [InlineKeyboardButton(TRANSLATIONS["live_timing"], callback_data="live"),
-         InlineKeyboardButton(TRANSLATIONS["help_commands_btn"], callback_data="help")],
+        [
+            InlineKeyboardButton(
+                TRANSLATIONS["driver_standings"], callback_data="standings"
+            ),
+            InlineKeyboardButton(
+                TRANSLATIONS["constructor_standings"], callback_data="constructors"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                TRANSLATIONS["last_session"], callback_data="lastrace"
+            ),
+            InlineKeyboardButton(
+                TRANSLATIONS["schedule_weather"], callback_data="nextrace"
+            ),
+        ],
+        [
+            InlineKeyboardButton(TRANSLATIONS["live_timing"], callback_data="live"),
+            InlineKeyboardButton(
+                TRANSLATIONS["help_commands_btn"], callback_data="help"
+            ),
+        ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     if isinstance(update.message, Message):
-        await update.message.reply_text(f"{TRANSLATIONS['menu_title']}\n\n{TRANSLATIONS['menu_text']}", reply_markup=reply_markup, parse_mode="Markdown")
+        await update.message.reply_text(
+            f"{TRANSLATIONS['menu_title']}\n\n{TRANSLATIONS['menu_text']}",
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
+
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle button clicks"""
@@ -1116,7 +1420,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     if current_data_hash != previous_data_hash:
                                         message = format_timing_data_for_telegram(data)
                                         try:
-                                            await live_msg.edit_text(message, parse_mode="Markdown")
+                                            await live_msg.edit_text(
+                                                message, parse_mode="Markdown"
+                                            )
                                         except:
                                             # Delete old message and send new one
                                             try:
@@ -1124,7 +1430,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                             except:
                                                 pass
                                             if isinstance(query.message, Message):
-                                                live_msg = await query.message.reply_text(message, parse_mode="Markdown")
+                                                live_msg = (
+                                                    await query.message.reply_text(
+                                                        message, parse_mode="Markdown"
+                                                    )
+                                                )
                                         previous_data_hash = current_data_hash
                                     # Continue checking even if no changes (session still active)
                                 else:
@@ -1161,7 +1471,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     if current_data_hash != previous_data_hash:
                                         message = format_timing_data_for_telegram(data)
                                         try:
-                                            await live_msg.edit_text(message, parse_mode="Markdown")
+                                            await live_msg.edit_text(
+                                                message, parse_mode="Markdown"
+                                            )
                                         except:
                                             # Delete old message and send new one
                                             try:
@@ -1169,7 +1481,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                             except:
                                                 pass
                                             if isinstance(query.message, Message):
-                                                live_msg = await query.message.reply_text(message, parse_mode="Markdown")
+                                                live_msg = (
+                                                    await query.message.reply_text(
+                                                        message, parse_mode="Markdown"
+                                                    )
+                                                )
                                         previous_data_hash = current_data_hash
                                     # Continue checking even if no changes (session still active)
                                 else:
@@ -1193,7 +1509,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     pass
             if isinstance(query.message, Message):
                 if keyboard:
-                    await query.message.reply_text(message, parse_mode="Markdown", reply_markup=keyboard)
+                    await query.message.reply_text(
+                        message, parse_mode="Markdown", reply_markup=keyboard
+                    )
                 else:
                     await query.message.reply_text(message, parse_mode="Markdown")
             return
@@ -1219,6 +1537,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(query.message, Message):
         await query.message.reply_text(message, parse_mode="Markdown")
 
+
 # Command handlers
 async def standings_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(update.message, Message):
@@ -1226,11 +1545,13 @@ async def standings_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = get_current_standings()
         await update.message.reply_text(message, parse_mode="Markdown")
 
+
 async def constructors_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(update.message, Message):
         await update.message.reply_text(get_f1_loading_message())
         message = get_constructor_standings()
         await update.message.reply_text(message, parse_mode="Markdown")
+
 
 async def lastrace_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(update.message, Message):
@@ -1238,11 +1559,13 @@ async def lastrace_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message = get_last_session_results()
         await update.message.reply_text(message, parse_mode="Markdown")
 
+
 async def nextrace_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(update.message, Message):
         await update.message.reply_text(get_f1_loading_message())
         message = get_next_race()
         await update.message.reply_text(message, parse_mode="Markdown")
+
 
 async def live_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Live timing with auto-update using optimized scraper - only run during active sessions"""
@@ -1251,7 +1574,9 @@ async def live_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Check if there's an active F1 session before starting live updates
         if not check_active_f1_session():
-            await loading_msg.edit_text("❌ Hal-hazırda aktiv F1 sessiyası yoxdur\n\n🔴 Canlı vaxt yalnız F1 yarış həftəsonlarında, sessiya gedərkən mövcuddur.\n\n⏰ Canlı vaxt sessiyadan 2 saat əvvəl başlayır və sessiyadan 1 saat sonra dayanır.\n\n📊 Canlı vaxt göstərir:\n• Sürücülərin mövqeləri\n• Dövrə vaxtları\n• Interval vaxtları\n• Təkər məlumatları\n• Hər 30 saniyədə avtomatik yeniləmə\n\nAlternativlər:\n• /nextrace - Gələn yarış və hava proqnozu\n• /lastrace - Son sessiya nəticələri")
+            await loading_msg.edit_text(
+                "❌ Hal-hazırda aktiv F1 sessiyası yoxdur\n\n🔴 Canlı vaxt yalnız F1 yarış həftəsonlarında, sessiya gedərkən mövcuddur.\n\n⏰ Canlı vaxt sessiyadan 2 saat əvvəl başlayır və sessiyadan 1 saat sonra dayanır.\n\n📊 Canlı vaxt göstərir:\n• Sürücülərin mövqeləri\n• Dövrə vaxtları\n• Interval vaxtları\n• Təkər məlumatları\n• Hər 30 saniyədə avtomatik yeniləmə\n\nAlternativlər:\n• /nextrace - Gələn yarış və hava proqnozu\n• /lastrace - Son sessiya nəticələri"
+            )
             return
 
         if OPTIMIZED_SCRAPER_AVAILABLE:
@@ -1274,16 +1599,22 @@ async def live_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                 current_data_hash = hash(str(data))
                                 # Only update if data has actually changed
                                 if current_data_hash != previous_data_hash:
-                                    timing_message = format_timing_data_for_telegram(data)
+                                    timing_message = format_timing_data_for_telegram(
+                                        data
+                                    )
                                     try:
-                                        await loading_msg.edit_text(timing_message, parse_mode="Markdown")
+                                        await loading_msg.edit_text(
+                                            timing_message, parse_mode="Markdown"
+                                        )
                                     except:
                                         # Delete old message and send new one
                                         try:
                                             await loading_msg.delete()
                                         except:
                                             pass
-                                        loading_msg = await update.message.reply_text(timing_message, parse_mode="Markdown")
+                                        loading_msg = await update.message.reply_text(
+                                            timing_message, parse_mode="Markdown"
+                                        )
                                     previous_data_hash = current_data_hash
                                 # Continue checking even if no changes (session still active)
                             else:
@@ -1291,10 +1622,14 @@ async def live_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         except Exception:
                             break
                 else:
-                    await loading_msg.edit_text("❌ No live timing data available\n\nTry /lastrace for recent results.")
+                    await loading_msg.edit_text(
+                        "❌ No live timing data available\n\nTry /lastrace for recent results."
+                    )
 
             except Exception as e:
-                await loading_msg.edit_text(f"❌ Optimized scraper error: {str(e)}\n\nTry /lastrace for recent results.")
+                await loading_msg.edit_text(
+                    f"❌ Optimized scraper error: {str(e)}\n\nTry /lastrace for recent results."
+                )
         elif SCRAPER_AVAILABLE:
             try:
                 # Fallback to original scraper
@@ -1315,16 +1650,22 @@ async def live_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                 current_data_hash = hash(str(data))
                                 # Only update if data has actually changed
                                 if current_data_hash != previous_data_hash:
-                                    timing_message = format_timing_data_for_telegram(data)
+                                    timing_message = format_timing_data_for_telegram(
+                                        data
+                                    )
                                     try:
-                                        await loading_msg.edit_text(timing_message, parse_mode="Markdown")
+                                        await loading_msg.edit_text(
+                                            timing_message, parse_mode="Markdown"
+                                        )
                                     except:
                                         # Delete old message and send new one
                                         try:
                                             await loading_msg.delete()
                                         except:
                                             pass
-                                        loading_msg = await update.message.reply_text(timing_message, parse_mode="Markdown")
+                                        loading_msg = await update.message.reply_text(
+                                            timing_message, parse_mode="Markdown"
+                                        )
                                     previous_data_hash = current_data_hash
                                 # Continue checking even if no changes (session still active)
                             else:
@@ -1332,12 +1673,17 @@ async def live_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         except Exception:
                             break
                 else:
-                    await loading_msg.edit_text("❌ No live timing data available\n\nTry /lastrace for recent results.")
+                    await loading_msg.edit_text(
+                        "❌ No live timing data available\n\nTry /lastrace for recent results."
+                    )
 
             except Exception as e:
-                await loading_msg.edit_text(f"❌ Error: {str(e)}\n\nTry /lastrace for recent results.")
+                await loading_msg.edit_text(
+                    f"❌ Error: {str(e)}\n\nTry /lastrace for recent results."
+                )
         else:
             await loading_msg.edit_text(TRANSLATIONS["live_not_available"])
+
 
 async def streams_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Get available streams"""
@@ -1345,9 +1691,12 @@ async def streams_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.message.from_user.id if update.message.from_user else None
         message, keyboard = get_streams(user_id)
         if keyboard:
-            await update.message.reply_text(message, parse_mode="Markdown", reply_markup=keyboard)
+            await update.message.reply_text(
+                message, parse_mode="Markdown", reply_markup=keyboard
+            )
         else:
             await update.message.reply_text(message, parse_mode="Markdown")
+
 
 async def addstream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Add a personal stream"""
@@ -1385,6 +1734,7 @@ async def addstream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(TRANSLATIONS["stream_error"])
 
+
 async def removestream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Remove a personal stream"""
     if not isinstance(update.message, Message) or update.message.from_user is None:
@@ -1409,15 +1759,20 @@ async def removestream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if index < 0 or index >= len(user_streams[user_id]):
-        await update.message.reply_text(TRANSLATIONS["invalid_number_range"].format(len(user_streams[user_id])))
+        await update.message.reply_text(
+            TRANSLATIONS["invalid_number_range"].format(len(user_streams[user_id]))
+        )
         return
 
     removed = user_streams[user_id].pop(index)
 
     if save_user_streams(user_streams):
-        await update.message.reply_text(TRANSLATIONS["stream_removed"].format(removed['name']))
+        await update.message.reply_text(
+            TRANSLATIONS["stream_removed"].format(removed["name"])
+        )
     else:
         await update.message.reply_text(TRANSLATIONS["error_removing"])
+
 
 async def streamhelp_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show stream help"""
@@ -1433,6 +1788,7 @@ async def streamhelp_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 {TRANSLATIONS["stream_help_vlc"]}"""
 
     await update.message.reply_text(help_text, parse_mode="Markdown")
+
 
 async def playstream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send stream link"""
@@ -1482,10 +1838,12 @@ async def playstream_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔗 *{stream_name}*\n\n"
         f"`{video_url}`\n\n"
         f"{TRANSLATIONS['copy_open_vlc']}",
-        parse_mode="Markdown"
+        parse_mode="Markdown",
     )
 
+
 # ==================== UTILITY FUNCTIONS ====================
+
 
 def check_active_f1_session():
     """Check if there's currently an active F1 session using OpenF1 API"""
@@ -1518,7 +1876,9 @@ def check_active_f1_session():
 
             if session_start:
                 try:
-                    start_dt = datetime.fromisoformat(session_start.replace('Z', '+00:00'))
+                    start_dt = datetime.fromisoformat(
+                        session_start.replace("Z", "+00:00")
+                    )
                     if start_dt.tzinfo is None:
                         start_dt = start_dt.replace(tzinfo=ZoneInfo("UTC"))
 
@@ -1527,17 +1887,23 @@ def check_active_f1_session():
                     time_diff_end = 0
 
                     if session_end:
-                        end_dt = datetime.fromisoformat(session_end.replace('Z', '+00:00'))
+                        end_dt = datetime.fromisoformat(
+                            session_end.replace("Z", "+00:00")
+                        )
                         if end_dt.tzinfo is None:
                             end_dt = end_dt.replace(tzinfo=ZoneInfo("UTC"))
                         time_diff_end = (end_dt - now).total_seconds() / 3600  # hours
 
                         # Session is active if it started within last 2 hours and hasn't ended + 1 hour grace period
-                        if -2 <= time_diff_start <= 0 and time_diff_end > -1:  # Allow 1 hour after session ends
+                        if (
+                            -2 <= time_diff_start <= 0 and time_diff_end > -1
+                        ):  # Allow 1 hour after session ends
                             return True
                     else:
                         # If no end time, check if session started recently (within 2 hours)
-                        if -2 <= time_diff_start <= 1:  # Allow 1 hour future for upcoming sessions
+                        if (
+                            -2 <= time_diff_start <= 1
+                        ):  # Allow 1 hour future for upcoming sessions
                             return True
 
                 except (ValueError, TypeError):
@@ -1549,9 +1915,11 @@ def check_active_f1_session():
         logging.error(f"Error checking active F1 session: {e}")
         return False
 
+
 # ==================== FLASK ROUTES ====================
 
-@app.route('/')
+
+@app.route("/")
 def home():
     """Health check endpoint for Leapcell"""
     return {
@@ -1567,22 +1935,24 @@ def home():
             "bot_running": BOT_RUNNING,
             "scrapers_available": {
                 "optimized": OPTIMIZED_SCRAPER_AVAILABLE,
-                "fallback": SCRAPER_AVAILABLE
-            }
-        }
+                "fallback": SCRAPER_AVAILABLE,
+            },
+        },
     }
 
-@app.route('/health')
+
+@app.route("/health")
 def health_check():
     """Health check endpoint"""
     return {
-        "status": "healthy", 
+        "status": "healthy",
         "service": "F1 Telegram Bot Leapcell Test",
         "bot_running": BOT_RUNNING,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
 
-@app.route('/webhook', methods=['POST'])
+
+@app.route("/webhook", methods=["POST"])
 def webhook():
     """Handle Telegram webhook updates"""
     try:
@@ -1601,7 +1971,7 @@ def webhook():
                     loop.run_until_complete(BOT_APP.process_update(update))
                 finally:
                     loop.close()
-            
+
             # Run in a separate greenlet to avoid blocking
             gevent.spawn(process_update_async)
             return jsonify({"status": "ok"}), 200
@@ -1611,7 +1981,8 @@ def webhook():
         logger.error(f"Webhook error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/status')
+
+@app.route("/status")
 def bot_status():
     """Get bot status information"""
     return {
@@ -1619,7 +1990,7 @@ def bot_status():
         "bot_running": BOT_RUNNING,
         "scrapers_available": {
             "optimized": OPTIMIZED_SCRAPER_AVAILABLE,
-            "fallback": SCRAPER_AVAILABLE
+            "fallback": SCRAPER_AVAILABLE,
         },
         "timestamp": datetime.now().isoformat(),
         "features": [
@@ -1627,18 +1998,21 @@ def bot_status():
             "standings",
             "race_schedule",
             "weather_forecast",
-            "stream_management"
-        ]
+            "stream_management",
+        ],
     }
 
+
 # ==================== BOT SETUP ====================
+
 
 def setup_bot():
     """Setup and start the Telegram bot with webhooks"""
     global BOT_APP, BOT_RUNNING
-    
+
     try:
         from dotenv import load_dotenv
+
         load_dotenv(override=False)
     except ImportError:
         # Fallback: manually read .env file if python-dotenv is not installed
@@ -1699,6 +2073,7 @@ def setup_bot():
                     else:
                         # Use current request host if available
                         import socket
+
                         hostname = socket.gethostname()
                         webhook_url = f"https://{hostname}/webhook"
 
@@ -1712,13 +2087,17 @@ def setup_bot():
                     try:
                         await application.bot.set_webhook(url=webhook_url)
                         logger.info("✅ Webhook set successfully!")
-                        logger.info("🤖 Bot is ready and waiting for webhook updates...")
+                        logger.info(
+                            "🤖 Bot is ready and waiting for webhook updates..."
+                        )
                     except Exception as e:
                         logger.error(f"❌ Failed to set webhook: {e}")
                         logger.info("🔄 Falling back to polling mode...")
                         # Fallback to polling if webhook fails
                         try:
-                            await application.run_polling(allowed_updates=None, stop_signals=None)
+                            await application.run_polling(
+                                allowed_updates=None, stop_signals=None
+                            )
                         except Exception as poll_e:
                             logger.error(f"❌ Polling also failed: {poll_e}")
 
@@ -1731,7 +2110,9 @@ def setup_bot():
                 try:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
-                    loop.run_until_complete(application.run_polling(allowed_updates=None, stop_signals=None))
+                    loop.run_until_complete(
+                        application.run_polling(allowed_updates=None, stop_signals=None)
+                    )
                     loop.close()
                 except Exception as poll_e:
                     logger.error(f"❌ Polling also failed: {poll_e}")
@@ -1739,14 +2120,15 @@ def setup_bot():
         # Start bot setup in background thread
         bot_thread = threading.Thread(target=setup_webhook, daemon=True)
         bot_thread.start()
-        
+
         logger.info("✅ Bot setup completed successfully!")
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Bot setup failed: {e}")
         BOT_RUNNING = False
         return False
+
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""
@@ -1755,6 +2137,7 @@ def signal_handler(sig, frame):
     BOT_RUNNING = False
     shutdown_event.set()
     sys.exit(0)
+
 
 # Register signal handlers
 signal.signal(signal.SIGINT, signal_handler)
@@ -1773,6 +2156,6 @@ if __name__ == "__main__":
     # Local development mode
     logger.info("Starting F1 Bot in development mode...")
     setup_bot()
-    
+
     # Run Flask app directly for development
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)), debug=False)
