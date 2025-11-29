@@ -1,6 +1,26 @@
-# F1 Telegram Bot - Project Summary
+# F1 Telegram Bot - Project Summary & Deployment Options
 
-## 📁 Complete Project Structure
+## 🎯 Deployment Platform Comparison
+
+You now have **TWO excellent free hosting options** to choose from:
+
+### 🚂 **Railway** (Original Recommendation)
+- ✅ **Completely free** ($5/month credit covers your usage)
+- ✅ **Always-on containers** (no sleeping)
+- ✅ **Professional-grade** infrastructure
+- ✅ **Excellent Playwright support**
+- ✅ **Zero configuration** for "Always On"
+
+### 🔄 **Replit** (New Option)
+- ✅ **Free tier available** (Pro recommended for "Always On")
+- ✅ **Excellent Playwright support**
+- ✅ **Easy setup and management**
+- ✅ **Real-time debugging** capabilities
+- ✅ **Built-in package management**
+- ⚠️ **Free tier sleeps** after 30 minutes (bad for Telegram bots)
+- 💰 **Pro tier $7/month** for "Always On" availability
+
+##  Complete Project Structure
 
 Your cleaned F1 Telegram Bot project is now ready for GitHub upload and Railway deployment. Here's what you have:
 
@@ -8,20 +28,21 @@ Your cleaned F1 Telegram Bot project is now ready for GitHub upload and Railway 
 
 ```
 📁 f1-telegram-bot/ (your project directory)
-├── 📄 f1_bot.py                    # Main bot application (Railway-optimized)
+├── 📄 f1_bot.py                    # Main bot application (Railway/Replit optimized)
 ├── 📄 optimized_scraper.py         # Live timing scraper with Playwright
-├── 📄 fallback_scraper.py          # Backup scraper (renamed from final_working_scraper.py)
+├── 📄 fallback_scraper.py          # Backup scraper
 ├── 📄 requirements.txt             # Python dependencies
 ├── 📄 streams.txt                  # Default stream links
 ├── 📄 user_streams.json            # User data storage
-├── 📄 Dockerfile                   # Railway-optimized container configuration
+├── 📄 Dockerfile                   # Railway container configuration
 ├── 📄 railway.toml                 # Railway deployment configuration
 ├── 📄 .gitignore                   # Git ignore file (sensitive files excluded)
 ├── 📄 README.md                    # Updated project documentation
 ├── 📄 comprehensive_test.py        # Local testing script
 ├── 📄 Local_Testing_Guide.md       # Detailed testing instructions
-├── 📄 Railway_Deployment_Guide.md  # Complete deployment guide
-├── 📄 Railway_Configuration_Files.md # Configuration details
+├── 📄 Railway_Deployment_Guide.md  # Railway deployment guide
+├── 📄 Replit_Deployment_Guide.md   # Replit deployment guide (NEW!)
+├── 📄 Railway_Configuration_Files.md # Railway configuration details
 ├── 📄 Railway_Testing_Guide.md     # Railway-specific testing
 ├── 📄 Hosting_Comparison_Analysis.md # Platform comparison
 ├── 📄 Complete_Migration_Playbook.md # All-in-one reference
