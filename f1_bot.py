@@ -2110,9 +2110,47 @@ def setup_bot():
 
     try:
         from dotenv import load_dotenv
-
         load_dotenv(override=False)
-        log_diagnostic("Environment variables loaded", "INFO")
+        log_diagnostic("Environment variables loaded via python-dotenv", "INFO")
+    except ImportError:
+        # Fallback: manually read .env file if python-dotenv is not installed
+        log_diagnostic("python-dotenv not available, using manual .env parsing", "WARNING")
+        if not os.getenv("TELEGRAM_BOT_TOKEN") and os.path.exists(".env"):
+            try:
+                with open(".env", "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            key, value = line.split("=", 1)
+                            key = key.strip()
+                            value = value.strip().strip('"').strip("'")
+                            if not os.getenv(key):
+                                os.environ[key] = value
+                                log_diagnostic(f"Set environment variable: {key}", "INFO")
+            except Exception as e:
+                log_diagnostic(f"Error reading .env file: {e}", "ERROR")
+
+    # Additional environment validation for hosting platforms
+    log_diagnostic("Validating environment for hosting platform compatibility", "INFO")
+    
+    # Ensure PORT is set for Render compatibility
+    if not os.getenv("PORT"):
+        os.environ["PORT"] = "10000"
+        log_diagnostic("Set default PORT=10000 for Render compatibility", "INFO")
+    
+    # Check for platform-specific environment variables
+    render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+    railway_url = os.getenv("RAILWAY_STATIC_URL")
+    fly_io_app = os.getenv("FLY_APP_NAME")
+    
+    if render_hostname:
+        log_diagnostic(f"Detected Render environment: {render_hostname}", "INFO")
+    elif railway_url:
+        log_diagnostic(f"Detected Railway environment: {railway_url}", "INFO")
+    elif fly_io_app:
+        log_diagnostic(f"Detected Fly.io environment: {fly_io_app}", "INFO")
+    else:
+        log_diagnostic("Unknown hosting environment - using generic configuration", "WARNING")
     except ImportError:
         # Fallback: manually read .env file if python-dotenv is not installed
         log_diagnostic("python-dotenv not available, manual .env parsing", "WARNING")
@@ -2132,6 +2170,30 @@ def setup_bot():
                                 )
             except Exception as e:
                 log_diagnostic(f"Error reading .env file: {e}", "ERROR")
+
+    # Additional environment validation for hosting platforms
+    log_diagnostic("Validating environment for hosting platform compatibility", "INFO")
+
+    # Ensure PORT is set for Render compatibility
+    if not os.getenv("PORT"):
+        os.environ["PORT"] = "10000"
+        log_diagnostic("Set default PORT=10000 for Render compatibility", "INFO")
+
+    # Check for platform-specific environment variables
+    render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+    railway_url = os.getenv("RAILWAY_STATIC_URL")
+    fly_io_app = os.getenv("FLY_APP_NAME")
+
+    if render_hostname:
+        log_diagnostic(f"Detected Render environment: {render_hostname}", "INFO")
+    elif railway_url:
+        log_diagnostic(f"Detected Railway environment: {railway_url}", "INFO")
+    elif fly_io_app:
+        log_diagnostic(f"Detected Fly.io environment: {fly_io_app}", "INFO")
+    else:
+        log_diagnostic(
+            "Unknown hosting environment - using generic configuration", "WARNING"
+        )
 
     # Get bot token from environment variable
     BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -2199,11 +2261,17 @@ def setup_bot():
                         webhook_url = f"https://{render_url}/webhook"
                         log_diagnostic(f"Using Render URL: {webhook_url}", "INFO")
                     else:
-                        # Fallback to generic approach
-                        log_diagnostic(
-                            "No platform URL found, using generic webhook", "WARNING"
-                        )
-                        webhook_url = f"https://your-app-name.onrender.com/webhook"  # User should replace this
+                        # Fallback to Railway URL construction
+                        railway_url = os.getenv("RAILWAY_STATIC_URL")
+                        if railway_url:
+                            webhook_url = f"{railway_url}/webhook"
+                            log_diagnostic(f"Using Railway URL: {webhook_url}", "INFO")
+                        else:
+                            # Final fallback - this should be replaced by user
+                            webhook_url = f"https://your-app-name.onrender.com/webhook"
+                            log_diagnostic(
+                                "Using fallback webhook URL - please update", "WARNING"
+                            )
 
                 log_diagnostic(f"Final webhook URL: {webhook_url}", "INFO")
 
@@ -2214,7 +2282,27 @@ def setup_bot():
                 async def set_webhook_async():
                     try:
                         log_diagnostic(f"Setting webhook to: {webhook_url}", "INFO")
-                        await application.bot.set_webhook(url=webhook_url)
+                        # Check if webhook URL is valid
+                        if not webhook_url.startswith("https://"):
+                            log_diagnostic("❌ Webhook URL must use HTTPS", "ERROR")
+                            return
+
+                        # Test webhook URL accessibility
+                        test_response = requests.get(webhook_url, timeout=10)
+                        log_diagnostic(
+                            f"Webhook URL test: {test_response.status_code}", "INFO"
+                        )
+
+                        # Set webhook with proper configuration
+                        await application.bot.set_webhook(
+                            url=webhook_url,
+                            allowed_updates=[
+                                "message",
+                                "callback_query",
+                                "edited_message",
+                            ],
+                            drop_pending_updates=True,
+                        )
                         log_diagnostic("✅ Webhook set successfully!", "INFO")
                         log_diagnostic(
                             "🤖 Bot is ready and waiting for webhook updates...", "INFO"
@@ -2224,6 +2312,17 @@ def setup_bot():
                         log_diagnostic(
                             "🔄 Falling back to webhook mode only...", "WARNING"
                         )
+
+                        # Try to get webhook info for debugging
+                        try:
+                            webhook_info = await application.bot.get_webhook_info()
+                            log_diagnostic(
+                                f"Current webhook info: {webhook_info}", "INFO"
+                            )
+                        except Exception as debug_e:
+                            log_diagnostic(
+                                f"Could not get webhook info: {debug_e}", "ERROR"
+                            )
 
                 loop.run_until_complete(set_webhook_async())
                 loop.close()
