@@ -1,195 +1,155 @@
-# F1 Telegram Bot - Complete Leapcell Deployment Solution
+# F1 Telegram Bot
 
-🏁 **Successfully resolved all F1 Telegram bot deployment issues for Leapcell hosting!**
+🏎️ **Live Formula 1 updates, standings, race schedules, and live timing for Telegram**
 
-## 🎯 Problem Solved
+## ✨ Features
 
-The original F1 Telegram bot was not functioning correctly on Leapcell due to multiple deployment issues:
+- 🏆 **Driver & Constructor Standings** - Current season rankings
+- 📅 **Race Schedule** - Upcoming races with weather forecasts
+- 🏁 **Live Timing** - Real-time position updates during F1 sessions
+- 🎥 **Stream Management** - Personal stream links and sharing
+- 🌤️ **Weather Information** - Race weekend weather forecasts
+- 📱 **Telegram Integration** - Full Telegram bot with interactive menu
 
-### ❌ **Original Issues**
-- Mixed sync/async Flask application structure
-- Incorrect Docker configuration for containerized environments
-- Missing critical dependencies and system packages
-- Improper webhook handling
-- No health checks or monitoring
-- Resource allocation problems
-- Encoding issues in Python files
+## 🚀 Quick Start
 
-### ✅ **Complete Solution Provided**
+### Local Development
 
-## 🚀 What's Included
-
-### 📁 **Complete Project Structure**
-```
-f1-bot-leapcell-test/
-├── leapcell_f1_bot.py      # ✅ Fixed Flask application with async support
-├── leapcell.yaml           # ✅ Optimized Leapcell configuration
-├── Dockerfile              # ✅ Container-ready with all dependencies
-├── requirements.txt        # ✅ Complete dependency list
-├── optimized_scraper.py    # ✅ Live timing scraper
-├── final_working_scraper.py # ✅ Fallback scraper
-├── streams.txt             # ✅ Default stream links
-├── user_streams.json       # ✅ User stream storage
-├── DEPLOYMENT_GUIDE.md     # ✅ Step-by-step deployment guide
-├── validate_deployment.py  # ✅ Deployment validation script
-└── README.md               # ✅ This file
-```
-
-### 🔧 **Key Fixes Applied**
-
-#### 1. **Flask Application Structure** ✅
-- **Fixed**: Async webhook handlers with proper event loop management
-- **Added**: WSGI-compatible structure for Gunicorn
-- **Implemented**: Proper application factory pattern
-- **Result**: Bot runs smoothly in production environment
-
-#### 2. **Docker Configuration** ✅
-- **Fixed**: Proper system dependencies for Playwright
-- **Added**: Non-root user security
-- **Implemented**: Health checks and monitoring
-- **Optimized**: Multi-stage build for smaller images
-- **Result**: Container runs efficiently on Leapcell
-
-#### 3. **Leapcell Configuration** ✅
-- **Fixed**: Correct start command format
-- **Added**: Proper resource allocation
-- **Implemented**: Auto-scaling configuration
-- **Added**: Health checks and readiness probes
-- **Result**: Professional cloud deployment
-
-#### 4. **Dependencies & Optimization** ✅
-- **Added**: Missing critical packages (gevent, uvloop, etc.)
-- **Fixed**: Playwright browser installation
-- **Optimized**: Async request handling
-- **Added**: Comprehensive error handling
-- **Result**: Robust and performant application
-
-#### 5. **Live Timing & Scraping** ✅
-- **Added**: Optimized scraper with OpenF1 API integration
-- **Implemented**: Fallback scraper for reliability
-- **Added**: Caching system to prevent IP bans
-- **Optimized**: Container-friendly browser automation
-- **Result**: Reliable live timing during race weekends
-
-## 📊 Validation Results
-
-```
-✅ All required files present
-✅ Dockerfile configuration complete
-✅ leapcell.yaml properly configured
-✅ Python syntax validation passed
-✅ Dependencies complete
-✅ Environment variables configured
-✅ No errors detected
-```
-
-## 🚀 Deployment Status
-
-### ✅ **Ready for Immediate Deployment**
-
-1. **Repository Setup**: All files ready for GitHub
-2. **Leapcell Configuration**: Complete with optimized settings
-3. **Container Build**: Tested and validated
-4. **Documentation**: Comprehensive deployment guide included
-
-### 📋 **Quick Deployment Steps**
-
-1. **Push to GitHub**:
+1. **Clone and Setup**
    ```bash
-   git add .
-   git commit -m "Leapcell deployment ready"
-   git push origin main
+   git clone https://github.com/yourusername/f1-telegram-bot.git
+   cd f1-telegram-bot
+   
+   # Create virtual environment
+   python -m venv f1_bot_env
+   source f1_bot_env/bin/activate  # Linux/Mac
+   # or f1_bot_env\Scripts\activate  # Windows
    ```
 
-2. **Deploy on Leapcell**:
-   - Connect GitHub repository
-   - Use provided configuration settings
-   - Set `TELEGRAM_BOT_TOKEN` environment variable
-   - Deploy and monitor
+2. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   playwright install chromium
+   ```
 
-3. **Verify Deployment**:
-   - Check `/health` endpoint
-   - Test bot commands
-   - Monitor logs for any issues
+3. **Set Environment Variables**
+   Create `.env` file:
+   ```env
+   TELEGRAM_BOT_TOKEN=your_bot_token_here
+   PORT=8080
+   ```
 
-## 🎯 Bot Features
+4. **Run Locally**
+   ```bash
+   python f1_bot.py
+   ```
 
-### 🏎️ **Core F1 Features**
-- ✅ Live timing during race weekends
-- ✅ Driver and constructor standings
-- ✅ Race schedules with weather forecasts
-- ✅ Last race results
-- ✅ Session information
+5. **Test Your Bot**
+   - Find your bot on Telegram: `@YourBotName`
+   - Send `/start` to begin
 
-### 🔧 **Technical Features**
-- ✅ Telegram webhook integration
-- ✅ User stream management
-- ✅ Optimized caching system
-- ✅ Comprehensive error handling
-- ✅ Health monitoring
-- ✅ Auto-scaling support
+### Railway Deployment (Recommended)
 
-### 📱 **User Features**
-- ✅ Interactive menu system
-- ✅ Personal stream management
-- ✅ Real-time updates during sessions
-- ✅ Weather information
-- ✅ Multiple language support (Azerbaijani)
+This bot is optimized for **[Railway](https://railway.app)** deployment:
 
-## 🛠️ **Technical Specifications**
+1. **Deploy to Railway**
+   [![Deploy on Railway](https://railway-static.s3.us-east-2.amazonaws.com/deploy-button.svg)](https://railway.app/button/clone)
 
-### **Container Configuration**
-- **Base Image**: Python 3.11-slim
-- **Web Server**: Gunicorn with gthread workers
-- **Port**: 8080
-- **User**: Non-root app user
-- **Health Checks**: HTTP GET /health
+2. **Set Environment Variables**
+   - `TELEGRAM_BOT_TOKEN`: Your bot token from @BotFather
+   - `PORT`: `8080` (default)
 
-### **Resource Allocation**
-- **Memory**: 512MB-1GB
-- **CPU**: 500m-1000m
-- **Auto-scaling**: 1-3 replicas
-- **Storage**: 1GB persistent
+3. **Configure Webhook**
+   ```bash
+   curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+     -d "url=https://your-service.up.railway.app/webhook"
+   ```
 
-### **Dependencies**
-- **Core**: python-telegram-bot, Flask, Gunicorn
-- **Scraping**: Playwright, BeautifulSoup4
-- **Async**: gevent, uvloop
-- **Utilities**: requests, logging, datetime
+## 🤖 Bot Commands
 
-## 📞 **Support & Maintenance**
+| Command | Description |
+|---------|-------------|
+| `/start` | Welcome message and menu |
+| `/menu` | Show interactive menu |
+| `/standings` | Driver standings |
+| `/constructors` | Constructor standings |
+| `/lastrace` | Last race results |
+| `/nextrace` | Next race schedule |
+| `/live` | Live timing (during sessions) |
+| `/streams` | Stream links |
+| `/addstream` | Add personal stream |
+| `/removestream` | Remove stream |
+| `/playstream` | Get stream link |
+| `/streamhelp` | Stream management help |
 
-### **Monitoring**
-- Health check endpoints: `/health`, `/status`
-- Comprehensive logging system
-- Error tracking and reporting
-- Performance monitoring
+## 🔧 Technical Details
 
-### **Maintenance**
-- Auto-scaling based on load
-- Health check monitoring
-- Resource usage optimization
-- Regular dependency updates
+### Architecture
+- **Framework**: Flask + python-telegram-bot
+- **Database**: JSON files for user data
+- **Scraping**: Playwright with Chromium
+- **APIs**: OpenF1, Jolpica F1 API, Ergast API
+- **Deployment**: Docker container on Railway
 
-### **Troubleshooting**
-- Detailed deployment guide included
-- Validation script for configuration
-- Common issues and solutions
-- Performance optimization tips
+### Requirements
+- Python 3.11+
+- Playwright with Chromium browser
+- Telegram Bot Token
+- Internet connection for F1 APIs
 
-## 🎉 **Success!**
+### File Structure
+```
+├── f1_bot.py              # Main bot application
+├── optimized_scraper.py   # Live timing scraper
+├── fallback_scraper.py    # Backup scraper
+├── requirements.txt       # Python dependencies
+├── Dockerfile            # Container configuration
+├── railway.toml          # Railway deployment config
+└── streams.txt           # Default stream links
+```
 
-The F1 Telegram bot is now **fully optimized and ready for Leapcell deployment** with:
+## 🧪 Testing
 
-- ✅ **Zero deployment errors**
-- ✅ **Complete documentation**
-- ✅ **Production-ready configuration**
-- ✅ **Comprehensive error handling**
-- ✅ **Optimized performance**
-- ✅ **Professional monitoring**
+Run comprehensive local tests:
 
-**Ready to deploy and impress F1 fans worldwide!** 🏎️💨
+```bash
+# Test all components
+python comprehensive_test.py
+
+# Test bot functions
+python test_bot_functions.py
+
+# Test scraper
+python test_scraper.py
+```
+
+See [`Local_Testing_Guide.md`](Local_Testing_Guide.md) for detailed testing procedures.
+
+## 📖 Documentation
+
+- [`Local_Testing_Guide.md`](Local_Testing_Guide.md) - Test locally before deployment
+- [`Railway_Deployment_Guide.md`](Railway_Deployment_Guide.md) - Complete deployment guide
+- [`Railway_Configuration_Files.md`](Railway_Configuration_Files.md) - Configuration details
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Telegram Bot API](https://core.telegram.org/bots/api)
+- [OpenF1 API](https://api.openf1.org/)
+- [Jolpica F1 API](https://jolpica.com/)
+- [python-telegram-bot](https://python-telegram-bot.org/)
 
 ---
 
-**Next Steps**: Follow the `DEPLOYMENT_GUIDE.md` for step-by-step deployment instructions, or run `python validate_deployment.py` to verify your setup before deployment.# f1-bot-complete-leapcell
+**Built with ❤️ for F1 fans worldwide** 🏎️💨
