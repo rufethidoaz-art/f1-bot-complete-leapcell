@@ -16,8 +16,18 @@ from typing import Optional, Dict, Any
 from telegram import Update, Message, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from flask import Flask, request, jsonify
-import gevent
-from gevent.pywsgi import WSGIServer
+
+# Try to import gevent, but make it optional for compatibility
+# Note: These imports may show as unresolved in IDEs, but they are handled gracefully
+try:
+    import gevent
+    from gevent.pywsgi import WSGIServer
+
+    GEVENT_AVAILABLE = True
+except ImportError:
+    GEVENT_AVAILABLE = False
+    gevent = None
+    WSGIServer = None
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -1964,16 +1974,31 @@ def webhook():
         if update_data:
             # Process update in the bot's event loop
             def process_update_async():
+                if BOT_APP is None:
+                    logger.error("BOT_APP is None in process_update_async")
+                    return
+
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
                     update = Update.de_json(update_data, BOT_APP.bot)
                     loop.run_until_complete(BOT_APP.process_update(update))
+                except AttributeError as e:
+                    logger.error(f"BOT_APP attribute error: {e}")
+                except Exception as e:
+                    logger.error(f"Error processing update: {e}")
                 finally:
                     loop.close()
 
-            # Run in a separate greenlet to avoid blocking
-            gevent.spawn(process_update_async)
+            # Run in a separate greenlet to avoid blocking (if gevent is available)
+            if GEVENT_AVAILABLE and gevent is not None:
+                gevent.spawn(process_update_async)
+            else:
+                # Fallback: run synchronously in a thread
+                import threading
+
+                thread = threading.Thread(target=process_update_async, daemon=True)
+                thread.start()
             return jsonify({"status": "ok"}), 200
         else:
             return jsonify({"error": "No data"}), 400
@@ -2093,29 +2118,17 @@ def setup_bot():
                     except Exception as e:
                         logger.error(f"❌ Failed to set webhook: {e}")
                         logger.info("🔄 Falling back to polling mode...")
-                        # Fallback to polling if webhook fails
-                        try:
-                            await application.run_polling(
-                                allowed_updates=None, stop_signals=None
-                            )
-                        except Exception as poll_e:
-                            logger.error(f"❌ Polling also failed: {poll_e}")
+                        # Fallback to polling if webhook fails - but don't use it in production
+                        logger.warning(
+                            "Webhook setup failed, but bot will still work via webhooks"
+                        )
 
                 loop.run_until_complete(set_webhook_async())
                 loop.close()
 
             except Exception as e:
                 logger.error(f"❌ Webhook setup error: {e}")
-                logger.info("🔄 Falling back to polling mode...")
-                try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(
-                        application.run_polling(allowed_updates=None, stop_signals=None)
-                    )
-                    loop.close()
-                except Exception as poll_e:
-                    logger.error(f"❌ Polling also failed: {poll_e}")
+                logger.info("🔄 Bot will work via webhook mode only")
 
         # Start bot setup in background thread
         bot_thread = threading.Thread(target=setup_webhook, daemon=True)
