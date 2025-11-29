@@ -41,11 +41,13 @@ def check_write_permissions():
         with open(test_file, "w") as f:
             f.write("test")
         os.remove(test_file)
-        logger.info("Write permissions available - using file logging")
+        log_diagnostic("Write permissions available - using file logging", "INFO")
         return True
     except Exception as e:
-        logger.warning(f"Write permissions denied: {e}")
-        logger.warning("Switching to stdout-only logging for read-only environment")
+        log_diagnostic(f"Write permissions denied: {e}", "WARNING")
+        log_diagnostic(
+            "Switching to stdout-only logging for read-only environment", "WARNING"
+        )
         return False
 
 
@@ -72,6 +74,59 @@ app = Flask(__name__)
 BOT_APP: Optional[Application] = None
 BOT_RUNNING = False
 shutdown_event = threading.Event()
+
+# Diagnostic logging configuration
+DIAGNOSTIC_LOG_FILE = "bot_diagnostics.log"
+DIAGNOSTIC_HANDLER = None
+
+
+def setup_diagnostic_logging():
+    """Setup diagnostic logging to track Telegram communication issues"""
+    global DIAGNOSTIC_HANDLER
+
+    # Create diagnostic logger
+    diagnostic_logger = logging.getLogger("diagnostics")
+    diagnostic_logger.setLevel(logging.DEBUG)
+
+    # Create file handler for diagnostics
+    if write_available:
+        DIAGNOSTIC_HANDLER = logging.FileHandler(DIAGNOSTIC_LOG_FILE, mode="a")
+        DIAGNOSTIC_HANDLER.setLevel(logging.DEBUG)
+
+        # Create formatter
+        formatter = logging.Formatter(
+            "%(asctime)s - DIAGNOSTIC - %(levelname)s - %(message)s"
+        )
+        DIAGNOSTIC_HANDLER.setFormatter(formatter)
+        diagnostic_logger.addHandler(DIAGNOSTIC_HANDLER)
+
+    return diagnostic_logger
+
+
+# Initialize diagnostic logger
+DIAGNOSTIC_LOGGER = setup_diagnostic_logging()
+
+
+def log_diagnostic(message: str, level: str = "INFO"):
+    """Log diagnostic information"""
+    if DIAGNOSTIC_LOGGER:
+        if level == "ERROR":
+            DIAGNOSTIC_LOGGER.error(message)
+        elif level == "WARNING":
+            DIAGNOSTIC_LOGGER.warning(message)
+        else:
+            DIAGNOSTIC_LOGGER.info(message)
+
+    # Also log to main logger
+    logger.info(f"DIAGNOSTIC: {message}")
+
+
+# Log deployment environment info
+log_diagnostic(f"Deployment environment: Render", "INFO")
+log_diagnostic(f"Platform: {sys.platform}", "INFO")
+log_diagnostic(f"Python version: {sys.version}", "INFO")
+log_diagnostic(f"Working directory: {os.getcwd()}", "INFO")
+log_diagnostic(f"Environment variables: {list(os.environ.keys())}", "INFO")
 
 # Azerbaijani translations
 TRANSLATIONS = {
@@ -1966,34 +2021,49 @@ def health_check():
 def webhook():
     """Handle Telegram webhook updates"""
     try:
+        log_diagnostic(
+            f"Webhook request received - BOT_APP: {BOT_APP is not None}", "INFO"
+        )
+
         if BOT_APP is None:
-            logger.error("Bot application not initialized")
+            log_diagnostic("Bot application not initialized", "ERROR")
             return jsonify({"error": "Bot application not initialized"}), 500
 
         update_data = request.get_json()
+        log_diagnostic(
+            f"Webhook payload: {len(update_data) if update_data else 0} bytes", "INFO"
+        )
+
         if update_data:
             # Process update in the bot's event loop
             def process_update_async():
                 if BOT_APP is None:
-                    logger.error("BOT_APP is None in process_update_async")
+                    log_diagnostic("BOT_APP is None in process_update_async", "ERROR")
                     return
 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
                     update = Update.de_json(update_data, BOT_APP.bot)
+                    log_diagnostic(
+                        f"Processing update: {update.update_id if update else 'No update'}",
+                        "INFO",
+                    )
                     loop.run_until_complete(BOT_APP.process_update(update))
+                    log_diagnostic("Update processed successfully", "INFO")
                 except AttributeError as e:
-                    logger.error(f"BOT_APP attribute error: {e}")
+                    log_diagnostic(f"BOT_APP attribute error: {e}", "ERROR")
                 except Exception as e:
-                    logger.error(f"Error processing update: {e}")
+                    log_diagnostic(f"Error processing update: {e}", "ERROR")
                 finally:
                     loop.close()
 
             # Run in a separate greenlet to avoid blocking (if gevent is available)
             if GEVENT_AVAILABLE and gevent is not None:
+                log_diagnostic("Using gevent for async processing", "INFO")
                 gevent.spawn(process_update_async)
             else:
+                log_diagnostic("Using threading for async processing", "INFO")
                 # Fallback: run synchronously in a thread
                 import threading
 
@@ -2001,9 +2071,10 @@ def webhook():
                 thread.start()
             return jsonify({"status": "ok"}), 200
         else:
+            log_diagnostic("No data in webhook request", "WARNING")
             return jsonify({"error": "No data"}), 400
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
+        log_diagnostic(f"Webhook error: {e}", "ERROR")
         return jsonify({"error": str(e)}), 500
 
 
@@ -2035,12 +2106,16 @@ def setup_bot():
     """Setup and start the Telegram bot with webhooks"""
     global BOT_APP, BOT_RUNNING
 
+    log_diagnostic("Starting bot setup...", "INFO")
+
     try:
         from dotenv import load_dotenv
 
         load_dotenv(override=False)
+        log_diagnostic("Environment variables loaded", "INFO")
     except ImportError:
         # Fallback: manually read .env file if python-dotenv is not installed
+        log_diagnostic("python-dotenv not available, manual .env parsing", "WARNING")
         if not os.getenv("TELEGRAM_BOT_TOKEN") and os.path.exists(".env"):
             try:
                 with open(".env", "r", encoding="utf-8") as f:
@@ -2052,25 +2127,42 @@ def setup_bot():
                             value = value.strip().strip('"').strip("'")
                             if not os.getenv(key):
                                 os.environ[key] = value
-            except Exception:
-                pass
+                                log_diagnostic(
+                                    f"Set environment variable: {key}", "INFO"
+                                )
+            except Exception as e:
+                log_diagnostic(f"Error reading .env file: {e}", "ERROR")
 
     # Get bot token from environment variable
     BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    log_diagnostic(f"BOT_TOKEN found: {BOT_TOKEN is not None}", "INFO")
 
     if not BOT_TOKEN:
-        logger.error(TRANSLATIONS["token_not_set"])
+        log_diagnostic(TRANSLATIONS["token_not_set"], "ERROR")
+
+        # Log available environment variables that might be relevant
+        relevant_vars = [
+            k
+            for k in os.environ.keys()
+            if "TELEGRAM" in k.upper() or "BOT" in k.upper()
+        ]
+        log_diagnostic(f"Relevant environment variables: {relevant_vars}", "INFO")
+
         return False
 
     try:
+        log_diagnostic("Creating Telegram application...", "INFO")
+
         # Create application
         application = Application.builder().token(BOT_TOKEN).build()
 
         # Store global reference
         BOT_APP = application
         BOT_RUNNING = True
+        log_diagnostic("Telegram application created successfully", "INFO")
 
         # Add handlers
+        log_diagnostic("Adding command handlers...", "INFO")
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("menu", show_menu))
         application.add_handler(CommandHandler("standings", standings_cmd))
@@ -2084,25 +2176,36 @@ def setup_bot():
         application.add_handler(CommandHandler("playstream", playstream_cmd))
         application.add_handler(CommandHandler("streamhelp", streamhelp_cmd))
         application.add_handler(CallbackQueryHandler(button_handler))
+        log_diagnostic("Command handlers added successfully", "INFO")
 
         # Setup webhook
         def setup_webhook():
             try:
+                log_diagnostic("Setting up webhook...", "INFO")
+
                 # Get the webhook URL from environment or construct it
                 webhook_url = os.getenv("WEBHOOK_URL")
+                log_diagnostic(f"WEBHOOK_URL from env: {webhook_url}", "INFO")
+
                 if not webhook_url:
-                    # Try to construct from Railway environment
+                    # Try to construct from environment
                     railway_url = os.getenv("RAILWAY_STATIC_URL")
+                    render_url = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+
                     if railway_url:
                         webhook_url = f"{railway_url}/webhook"
+                        log_diagnostic(f"Using Railway URL: {webhook_url}", "INFO")
+                    elif render_url:
+                        webhook_url = f"https://{render_url}/webhook"
+                        log_diagnostic(f"Using Render URL: {webhook_url}", "INFO")
                     else:
-                        # Use current request host if available
-                        import socket
+                        # Fallback to generic approach
+                        log_diagnostic(
+                            "No platform URL found, using generic webhook", "WARNING"
+                        )
+                        webhook_url = f"https://your-app-name.onrender.com/webhook"  # User should replace this
 
-                        hostname = socket.gethostname()
-                        webhook_url = f"https://{hostname}/webhook"
-
-                logger.info(f"Setting up webhook: {webhook_url}")
+                log_diagnostic(f"Final webhook URL: {webhook_url}", "INFO")
 
                 # Set webhook
                 loop = asyncio.new_event_loop()
@@ -2110,35 +2213,35 @@ def setup_bot():
 
                 async def set_webhook_async():
                     try:
+                        log_diagnostic(f"Setting webhook to: {webhook_url}", "INFO")
                         await application.bot.set_webhook(url=webhook_url)
-                        logger.info("✅ Webhook set successfully!")
-                        logger.info(
-                            "🤖 Bot is ready and waiting for webhook updates..."
+                        log_diagnostic("✅ Webhook set successfully!", "INFO")
+                        log_diagnostic(
+                            "🤖 Bot is ready and waiting for webhook updates...", "INFO"
                         )
                     except Exception as e:
-                        logger.error(f"❌ Failed to set webhook: {e}")
-                        logger.info("🔄 Falling back to polling mode...")
-                        # Fallback to polling if webhook fails - but don't use it in production
-                        logger.warning(
-                            "Webhook setup failed, but bot will still work via webhooks"
+                        log_diagnostic(f"❌ Failed to set webhook: {e}", "ERROR")
+                        log_diagnostic(
+                            "🔄 Falling back to webhook mode only...", "WARNING"
                         )
 
                 loop.run_until_complete(set_webhook_async())
                 loop.close()
 
             except Exception as e:
-                logger.error(f"❌ Webhook setup error: {e}")
-                logger.info("🔄 Bot will work via webhook mode only")
+                log_diagnostic(f"❌ Webhook setup error: {e}", "ERROR")
+                log_diagnostic("🔄 Bot will work via webhook mode only", "WARNING")
 
         # Start bot setup in background thread
         bot_thread = threading.Thread(target=setup_webhook, daemon=True)
         bot_thread.start()
+        log_diagnostic("Bot setup thread started", "INFO")
 
-        logger.info("✅ Bot setup completed successfully!")
+        log_diagnostic("✅ Bot setup completed successfully!", "INFO")
         return True
 
     except Exception as e:
-        logger.error(f"❌ Bot setup failed: {e}")
+        log_diagnostic(f"❌ Bot setup failed: {e}", "ERROR")
         BOT_RUNNING = False
         return False
 
@@ -2167,9 +2270,18 @@ if __name__ != "__main__":
 
 if __name__ == "__main__":
     # Local development mode
-    logger.info("Starting F1 Bot in development mode...")
-    setup_bot()
+    log_diagnostic("Starting F1 Bot in development mode...", "INFO")
+    log_diagnostic(f"PORT environment variable: {os.getenv('PORT', 'Not set')}", "INFO")
+
+    setup_result = setup_bot()
+    log_diagnostic(f"Bot setup result: {setup_result}", "INFO")
 
     # Run Flask app directly for development
     port = int(os.getenv("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    log_diagnostic(f"Starting Flask server on port {port}", "INFO")
+
+    try:
+        app.run(host="0.0.0.0", port=port, debug=False)
+    except Exception as e:
+        log_diagnostic(f"Flask server error: {e}", "ERROR")
+        raise
